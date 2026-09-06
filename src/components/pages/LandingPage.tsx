@@ -18,7 +18,7 @@ export const LandingPage: React.FC = () => {
           <div className="relative z-10 flex h-full flex-col items-center justify-center py-10 text-center px-6">
             <span className="inline-block px-5 py-2 rounded-full text-sm font-semibold mb-6"
               style={{ background: '#FFFFFF', color: '#2563EB', border: '1px solid #BFDBFE', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-              Simple Document Conversion
+              AI-Powered Document Conversion
             </span>
 
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold font-display tracking-tight leading-[1.08] mb-6"
