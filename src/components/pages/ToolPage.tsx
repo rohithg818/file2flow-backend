@@ -117,7 +117,7 @@ const TOOLS: Record<string, ToolConfig> = {
     title: 'Convert to/from PDF',
     description: 'Convert any document format to PDF or vice versa',
     color: '#2563eb',
-    accept: '.docx,.xlsx,.pptx,.html,.csv,.json,.pdf,.odt,.ods,.odp,.rtf',
+    accept: '.pdf,.docx,.xlsx,.pptx,.html,.csv,.json,.odt,.ods,.odp,.rtf',
     endpoint: '/api/convert/file',
     fields: [
       {
@@ -179,7 +179,6 @@ export function ToolPage() {
         formData.append('file', files[0]);
       }
 
-      // Add form fields
       for (const [key, value] of Object.entries(fields)) {
         if (value) formData.append(key, value);
       }
@@ -219,10 +218,10 @@ export function ToolPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-12">
-      {/* Header */}
       <button
         onClick={() => setActivePage('tools')}
-        className="flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-6 text-sm"
+        className="flex items-center gap-2 mb-6 text-sm"
+        style={{ color: '#64748B' }}
       >
         <ArrowLeft size={16} /> Back to Tools
       </button>
@@ -234,18 +233,17 @@ export function ToolPage() {
         >
           <Upload size={32} />
         </div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{config.title}</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">{config.description}</p>
+        <h1 className="text-2xl font-bold" style={{ color: '#0F172A' }}>{config.title}</h1>
+        <p className="mt-1" style={{ color: '#64748B' }}>{config.description}</p>
       </div>
 
-      {/* Upload Area */}
       <div
         onClick={() => fileInputRef.current?.click()}
-        className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all ${
-          files.length > 0
-            ? 'border-green-400 bg-green-50 dark:bg-green-900/10'
-            : 'border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500'
-        }`}
+        className="border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all"
+        style={{
+          borderColor: files.length > 0 ? '#34D399' : '#CBD5E1',
+          background: files.length > 0 ? '#F0FDF4' : '#FFFFFF',
+        }}
       >
         <input
           ref={fileInputRef}
@@ -257,40 +255,40 @@ export function ToolPage() {
         />
         {files.length > 0 ? (
           <div>
-            <CheckCircle size={32} className="mx-auto text-green-500 mb-2" />
-            <p className="font-medium text-gray-900 dark:text-white">
+            <CheckCircle size={32} className="mx-auto mb-2" style={{ color: '#10B981' }} />
+            <p className="font-medium" style={{ color: '#0F172A' }}>
               {files.length} file{files.length > 1 ? 's' : ''} selected
             </p>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm mt-1" style={{ color: '#64748B' }}>
               {files.map(f => f.name).join(', ')}
             </p>
           </div>
         ) : (
           <div>
-            <Upload size={32} className="mx-auto text-gray-400 mb-2" />
-            <p className="font-medium text-gray-900 dark:text-white">
+            <Upload size={32} className="mx-auto mb-2" style={{ color: '#94A3B8' }} />
+            <p className="font-medium" style={{ color: '#0F172A' }}>
               Click to upload or drag and drop
             </p>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm mt-1" style={{ color: '#64748B' }}>
               {config.accept.replace(/\./g, '').toUpperCase().replace(/,/g, ', ')}
             </p>
           </div>
         )}
       </div>
 
-      {/* Form Fields */}
       {config.fields && config.fields.length > 0 && (
         <div className="mt-6 space-y-4">
           {config.fields.map(field => (
             <div key={field.name}>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium mb-1" style={{ color: '#334155' }}>
                 {field.label}
               </label>
               {field.type === 'select' ? (
                 <select
                   value={fields[field.name] || field.defaultValue || ''}
                   onChange={e => setFields(prev => ({ ...prev, [field.name]: e.target.value }))}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 rounded-lg border text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={{ borderColor: '#E2E8F0', background: '#FFFFFF', color: '#0F172A' }}
                 >
                   {field.options?.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -302,7 +300,8 @@ export function ToolPage() {
                   value={fields[field.name] || ''}
                   onChange={e => setFields(prev => ({ ...prev, [field.name]: e.target.value }))}
                   placeholder={field.placeholder}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 rounded-lg border text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={{ borderColor: '#E2E8F0', background: '#FFFFFF', color: '#0F172A' }}
                 />
               )}
             </div>
@@ -310,7 +309,6 @@ export function ToolPage() {
         </div>
       )}
 
-      {/* Process Button */}
       <button
         onClick={handleProcess}
         disabled={files.length === 0 || status === 'processing'}
@@ -328,20 +326,20 @@ export function ToolPage() {
         )}
       </button>
 
-      {/* Result */}
       {status === 'done' && result && (
-        <div className="mt-6 p-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+        <div className="mt-6 p-4 rounded-xl" style={{ background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <CheckCircle size={20} className="text-green-500" />
+              <CheckCircle size={20} style={{ color: '#10B981' }} />
               <div>
-                <p className="font-medium text-green-800 dark:text-green-200">Done!</p>
-                <p className="text-sm text-green-600 dark:text-green-400">{result.filename}</p>
+                <p className="font-medium" style={{ color: '#065F46' }}>Done!</p>
+                <p className="text-sm" style={{ color: '#059669' }}>{result.filename}</p>
               </div>
             </div>
             <button
               onClick={handleDownload}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
+              className="flex items-center gap-2 px-4 py-2 text-white rounded-lg transition text-sm font-medium"
+              style={{ background: '#10B981' }}
             >
               <Download size={16} /> Download
             </button>
@@ -349,14 +347,13 @@ export function ToolPage() {
         </div>
       )}
 
-      {/* Error */}
       {status === 'error' && (
-        <div className="mt-6 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+        <div className="mt-6 p-4 rounded-xl" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
           <div className="flex items-center gap-3">
-            <AlertCircle size={20} className="text-red-500" />
+            <AlertCircle size={20} style={{ color: '#EF4444' }} />
             <div>
-              <p className="font-medium text-red-800 dark:text-red-200">Failed</p>
-              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+              <p className="font-medium" style={{ color: '#991B1B' }}>Failed</p>
+              <p className="text-sm" style={{ color: '#DC2626' }}>{error}</p>
             </div>
           </div>
         </div>

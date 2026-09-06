@@ -27,7 +27,7 @@ const CONTENT_TYPES = {
 
 const CONVERSION_MAP = {
   // === TO PDF (via Gotenberg) ===
-  'docx:pdf':   { engine: 'gotenberg-libreoffice' },
+  'docx:pdf':   { engine: 'docx-to-pdf' },
   'xlsx:pdf':   { engine: 'gotenberg-libreoffice' },
   'pptx:pdf':   { engine: 'pptx-to-pdf' },
   'odt:pdf':    { engine: 'gotenberg-libreoffice' },
@@ -230,37 +230,36 @@ async function textToPdf(textBuffer) {
 
 const DOCX_PDF_STYLES = `
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
+  html, body {
     font-family: 'Calibri', 'Segoe UI', Arial, sans-serif;
-    font-size: 11pt;
-    line-height: 1.5;
+    font-size: 10.5pt;
+    line-height: 1.45;
     color: #1a1a1a;
-    max-width: 100%;
+    width: 100%;
     overflow: hidden;
     word-wrap: break-word;
     overflow-wrap: break-word;
   }
-  @page { size: A4; margin: 20mm 18mm 20mm 18mm; }
-  h1 { font-size: 18pt; font-weight: 700; color: #111; margin: 14pt 0 6pt; padding-bottom: 6pt; border-bottom: 1.5pt solid #2563eb; break-after: avoid; }
-  h2 { font-size: 14pt; font-weight: 700; color: #111; margin: 12pt 0 5pt; padding-bottom: 4pt; border-bottom: 0.5pt solid #ccc; break-after: avoid; }
-  h3 { font-size: 12pt; font-weight: 700; color: #333; margin: 10pt 0 4pt; break-after: avoid; }
-  h4 { font-size: 11pt; font-weight: 700; font-style: italic; color: #333; margin: 8pt 0 3pt; break-after: avoid; }
-  p { margin: 3pt 0; text-align: left; line-height: 1.5; orphans: 3; widows: 3; }
-  ul, ol { padding-left: 20pt; margin: 3pt 0; }
-  li { margin: 2pt 0; break-inside: avoid; page-break-inside: avoid; }
-  table { border-collapse: collapse; width: 100%; margin: 6pt 0; break-inside: avoid; page-break-inside: avoid; }
-  th { background: #2563eb; color: white; padding: 5pt 8pt; text-align: left; font-weight: 600; font-size: 10pt; }
-  td { padding: 4pt 8pt; border: 0.5pt solid #d1d5db; font-size: 10pt; }
+  @page { size: letter; margin: 0.4in 0.5in 0.4in 0.5in; }
+  body { padding: 0; }
+  h1 { font-size: 16pt; font-weight: 700; color: #111; margin: 10pt 0 4pt; padding-bottom: 4pt; border-bottom: 1.5pt solid #2563eb; break-after: avoid; }
+  h2 { font-size: 12pt; font-weight: 700; color: #111; margin: 8pt 0 3pt; padding-bottom: 3pt; border-bottom: 0.5pt solid #ccc; break-after: avoid; }
+  h3 { font-size: 11pt; font-weight: 700; color: #333; margin: 6pt 0 2pt; break-after: avoid; }
+  h4 { font-size: 10.5pt; font-weight: 700; font-style: italic; color: #333; margin: 5pt 0 2pt; break-after: avoid; }
+  p { margin: 2pt 0; text-align: left; line-height: 1.45; orphans: 3; widows: 3; }
+  ul, ol { padding-left: 18pt; margin: 2pt 0; }
+  li { margin: 1pt 0; break-inside: avoid; page-break-inside: avoid; }
+  table { border-collapse: collapse; width: 100%; margin: 4pt 0; break-inside: avoid; page-break-inside: avoid; font-size: 9.5pt; }
+  th { background: #2563eb; color: white; padding: 4pt 6pt; text-align: left; font-weight: 600; font-size: 9pt; }
+  td { padding: 3pt 6pt; border: 0.5pt solid #d1d5db; font-size: 9.5pt; }
   tr:nth-child(even) td { background: #f9fafb; }
   tr { break-inside: avoid; page-break-inside: avoid; }
   strong { font-weight: 700; }
   em { font-style: italic; }
   u { text-decoration: underline; }
   a { color: #2563eb; text-decoration: underline; }
-  hr { border: none; border-top: 0.5pt solid #d1d5db; margin: 8pt 0; }
-  .docx-title { font-size: 24pt; text-align: center; font-weight: 700; color: #111; margin-bottom: 4pt; }
-  .docx-subtitle { text-align: center; color: #555; font-size: 11pt; margin-bottom: 14pt; }
-  blockquote { border-left: 3pt solid #2563eb; padding-left: 12pt; color: #555; margin: 6pt 0; }
+  hr { border: none; border-top: 0.5pt solid #d1d5db; margin: 6pt 0; }
+  blockquote { border-left: 3pt solid #2563eb; padding-left: 10pt; color: #555; margin: 4pt 0; }
   @media print {
     body { padding: 0; overflow: visible; }
     h1, h2, h3, h4 { break-after: avoid; page-break-after: avoid; }
@@ -273,7 +272,17 @@ const DOCX_PDF_STYLES = `
 
 async function docxToPdf(buffer) {
   const htmlResult = await mammoth.convertToHtml({ buffer });
-  const bodyHtml = htmlResult.value || '<p>No content found.</p>';
+  let bodyHtml = htmlResult.value || '<p>No content found.</p>';
+
+  // Strip empty paragraphs that cause massive gaps
+  bodyHtml = bodyHtml
+    .replace(/<p>\s*<\/p>/gi, '')
+    .replace(/<p>(?:<br\s*\/?>)\s*<\/p>/gi, '')
+    .replace(/<p>\s*(?:&nbsp;|\s)*<\/p>/gi, '')
+    .replace(/<p>\s*<br\s*\/?>\s*<\/p>/gi, '');
+
+  // Also strip sections with only whitespace/nbsp
+  bodyHtml = bodyHtml.replace(/<p>(\s|&nbsp;|&#160;|<br\s*\/?>)*<\/p>/gi, '');
 
   const fullHtml = `<!DOCTYPE html>
 <html><head><meta charset="UTF-8">
