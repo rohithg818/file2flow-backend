@@ -40,11 +40,11 @@ export const UpgradeModal: React.FC = () => {
   const [paddle, setPaddle] = useState<Paddle | null>(null);
 
   useEffect(() => {
-    const sellerId = import.meta.env.VITE_PADDLE_VENDOR_ID;
-    const environment = import.meta.env.VITE_PADDLE_ENVIRONMENT || 'sandbox';
-    if (sellerId) {
+    const clientToken = import.meta.env.VITE_PADDLE_CLIENT_TOKEN;
+    const environment = (import.meta.env.VITE_PADDLE_ENVIRONMENT || 'sandbox').replace(/^\uFEFF/, '');
+    if (clientToken) {
       initializePaddle({
-        sellerId: parseInt(sellerId, 10),
+        token: clientToken,
         environment: environment as 'sandbox' | 'production',
       }).then(setPaddle).catch(console.error);
     }
