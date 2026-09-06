@@ -1,5 +1,8 @@
 const { PDFDocument, rgb, degrees } = require('pdf-lib');
 const fetch = require('node-fetch').default || require('node-fetch');
+const FormData = require('form-data');
+
+const GOTENBERG_URL = process.env.GOTENBERG_URL || 'https://gotenberg-31r8.onrender.com';
 
 // ============================================================
 // COMPRESS PDF
@@ -10,10 +13,8 @@ const fetch = require('node-fetch').default || require('node-fetch');
  * Offers 3 levels: low (minimal change), medium (strip metadata + compress), high (aggressive)
  */
 async function compressPdf(pdfBuffer, level = 'medium') {
-  const gotenbergUrl = process.env.GOTENBERG_URL;
-
   // Use Gotenberg's qpdf optimizer for medium/high (real compression engine)
-  if ((level === 'medium' || level === 'high') && gotenbergUrl) {
+  if ((level === 'medium' || level === 'high') && GOTENBERG_URL) {
     try {
       const FormData = require('form-data');
       const form = new FormData();
@@ -32,7 +33,7 @@ async function compressPdf(pdfBuffer, level = 'medium') {
         form.append('collapseDuplicateStreams', 'true');
       }
 
-      const response = await fetch(`${gotenbergUrl}/forms/pdfengines/optimize`, {
+      const response = await fetch(`${GOTENBERG_URL}/forms/pdfengines/optimize`, {
         method: 'POST',
         body: form,
         headers: form.getHeaders(),
@@ -200,28 +201,24 @@ async function reorderPdf(pdfBuffer, newOrder) {
  * @param {string} ownerPassword - Password for full control (optional)
  */
 async function addPassword(pdfBuffer, userPassword, ownerPassword) {
-  const pdfDoc = await PDFDocument.load(pdfBuffer, { ignoreEncryption: true });
+  const form = new FormData();
+  form.append('files', pdfBuffer, { filename: 'input.pdf', contentType: 'application/pdf' });
+  form.append('userPassword', userPassword);
+  if (ownerPassword) form.append('ownerPassword', ownerPassword);
 
-  // pdf-lib doesn't directly support encryption, so we use a workaround
-  // by saving and re-encoding. For full encryption support, use qpdf.
-  // As a fallback, we embed the password as metadata and note the limitation.
-
-  // Actually, pdf-lib supports encryption via save options
-  const bytes = await pdfDoc.save({
-    userPassword,
-    ownerPassword: ownerPassword || userPassword,
-    permissions: {
-      printing: 'highResolution',
-      modifying: false,
-      copying: false,
-      annotating: false,
-      fillingForms: false,
-      contentAccessibility: true,
-      documentAssembly: false,
-    },
+  const response = await fetch(`${GOTENBERG_URL}/forms/pdfengines/encrypt`, {
+    method: 'POST',
+    body: form,
+    headers: form.getHeaders(),
+    signal: AbortSignal.timeout(60_000),
   });
 
-  return Buffer.from(bytes);
+  if (!response.ok) {
+    const err = await response.text().catch(() => 'No body');
+    throw new Error(`Gotenberg encrypt failed [${response.status}]: ${err.substring(0, 500)}`);
+  }
+
+  return Buffer.from(await response.arrayBuffer());
 }
 
 /**
