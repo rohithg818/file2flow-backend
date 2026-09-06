@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   ArrowRight, FileText, Image as ImageIcon, Layers, Lock,
-  Upload, Settings, Download, FileJson, FileType,
+  Upload, Settings, Download, FileJson, FileType, Sparkles,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { DocStreamHero } from '../ui/doc-stream-hero';
@@ -29,6 +29,7 @@ export const LandingPage: React.FC = () => {
 
             <p className="text-lg sm:text-xl leading-relaxed max-w-2xl mx-auto mb-10" style={{ color: '#64748B' }}>
               Convert documents, spreadsheets, images, JSON, Markdown, and HTML into clean output — quickly and without the hassle.
+              <span className="font-semibold" style={{ color: '#2563EB' }}> AI-powered</span> formatting for every file type.
             </p>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4">
@@ -132,6 +133,43 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
+      {/* AI-POWERED */}
+      <section className="py-20 lg:py-28 relative overflow-hidden" style={{ background: '#FFFFFF' }}>
+        <div className="absolute right-0 top-0 w-[400px] h-[400px] rounded-full opacity-10 pointer-events-none"
+          style={{ background: 'radial-gradient(circle, #818CF8 0%, transparent 70%)', filter: 'blur(80px)' }} />
+
+        <div className="max-w-7xl mx-auto px-8 relative z-10">
+          <div className="text-center mb-14">
+            <span className="text-sm font-semibold uppercase tracking-wider px-4 py-1.5 rounded-xl inline-block mb-3"
+              style={{ background: '#EDE9FE', color: '#7C3AED' }}>
+              <Sparkles className="w-3.5 h-3.5 inline mr-1.5 -mt-0.5" />AI-Powered
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-bold font-display tracking-tight" style={{ color: '#0F172A' }}>
+              Smart formatting, zero effort
+            </h2>
+            <p className="text-base mt-3 max-w-lg mx-auto" style={{ color: '#64748B' }}>
+              AI analyzes your document structure and suggests the best template, layout, and styling automatically.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { icon: '🎨', title: 'Auto Template', desc: 'AI detects your document type and picks the perfect PDF template — report, resume, invoice, or minimal.' },
+              { icon: '📊', title: 'Quality Scoring', desc: 'Get instant readability and quality scores with actionable suggestions before converting.' },
+              { icon: '📝', title: 'Smart Summary', desc: 'Auto-generate executive summaries, table of contents, and professional headers for any document.' },
+              { icon: '✨', title: 'Content Enhance', desc: 'AI suggests improvements to formatting, structure, and readability tailored to your file type.' },
+            ].map((feat, i) => (
+              <div key={i} className="p-6 rounded-2xl transition-all hover:shadow-md"
+                style={{ background: '#FAFBFC', border: '1px solid #E2E8F0' }}>
+                <span className="text-2xl">{feat.icon}</span>
+                <h3 className="text-base font-bold mt-3 mb-2" style={{ color: '#0F172A' }}>{feat.title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: '#64748B' }}>{feat.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="py-20 lg:py-28 relative overflow-hidden" style={{ background: '#FFFFFF' }}>
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[350px] rounded-full opacity-20 pointer-events-none"
@@ -142,7 +180,7 @@ export const LandingPage: React.FC = () => {
             Ready to convert your files?
           </h2>
           <p className="text-lg max-w-lg mx-auto" style={{ color: '#64748B' }}>
-            Try File2Flow today. Free accounts include 10 conversions every month with no credit card required.
+            Try File2Flow today. Free accounts include 10 conversions every month — with AI-powered formatting on every one.
           </p>
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
             <button onClick={() => setActivePage('convert')}

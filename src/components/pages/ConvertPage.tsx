@@ -559,8 +559,9 @@ export const ConvertPage: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <button onClick={() => setShowAiPanel(!showAiPanel)}
                           className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
-                          style={{ background: showAiPanel ? '#2563EB' : '#EFF6FF', color: showAiPanel ? '#fff' : '#2563EB', border: `1px solid ${showAiPanel ? '#2563EB' : '#BFDBFE'}` }}>
+                          style={{ background: showAiPanel ? '#7C3AED' : '#EDE9FE', color: showAiPanel ? '#fff' : '#7C3AED', border: `1px solid ${showAiPanel ? '#7C3AED' : '#C4B5FD}` }}>
                           <Sparkles className="w-4 h-4" /> AI
+                          {!showAiPanel && <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold text-white" style={{ background: '#7C3AED' }}>NEW</span>}
                         </button>
                         {currentTargetFile.status === 'completed' && (
                           <button onClick={() => setPreviewModalFile(currentTargetFile)} className="p-2 rounded-lg" style={{ color: '#64748B' }}>
