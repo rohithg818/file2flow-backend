@@ -7,7 +7,7 @@ import { useApp } from "../../context/AppContext"
 import { ActivePage } from "../../types"
 
 export const Navbar1: React.FC = () => {
-  const { activePage, setActivePage, user, setLogoutConfirmOpen, setUpgradeModalOpen } = useApp()
+  const { activePage, setActivePage, user, setLogoutConfirmOpen } = useApp()
   const [isOpen, setIsOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
@@ -96,7 +96,7 @@ export const Navbar1: React.FC = () => {
                         className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] hover:bg-[#F8FAFC] rounded-xl transition-colors text-left" style={{ color: '#334155' }}>
                         <UserIcon className="w-4 h-4" style={{ color: '#94A3B8' }} /> Account
                       </button>
-                      <button onClick={() => { setProfileOpen(false); setUpgradeModalOpen(true) }}
+                      <button onClick={() => { setProfileOpen(false); setActivePage('pricing') }}
                         className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] hover:bg-[#F8FAFC] rounded-xl transition-colors text-left" style={{ color: '#2563EB' }}>
                         <Sparkles className="w-4 h-4" /> Upgrade Plan
                       </button>

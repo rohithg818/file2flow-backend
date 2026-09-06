@@ -207,7 +207,7 @@ export const DashboardPage: React.FC = () => {
           </div>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
-              onClick={() => setUpgradeModalOpen(true)}
+              onClick={() => setActivePage('pricing')}
               className="px-8 py-4 rounded-full font-semibold text-base text-[#0F172A] transition-all hover:brightness-125 flex items-center justify-center gap-2"
               style={{
                 background: 'linear-gradient(0deg, #1D4ED8 0%, #2563EB 100%)',

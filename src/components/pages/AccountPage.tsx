@@ -216,7 +216,7 @@ result = client.convert(
  </div>
 
  <button
- onClick={() => setUpgradeModalOpen(true)}
+ onClick={() => setActivePage('pricing')}
  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-xs font-bold shadow-md transition-all self-start sm:self-auto"
  style={{ background: '#2563EB' }}
  >

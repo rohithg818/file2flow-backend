@@ -4,7 +4,6 @@ import { Navbar1 as Navbar } from './components/ui/navbar-1';
 import { Footer } from './components/layout/Footer';
 import { ToastContainer } from './components/common/ToastContainer';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
-import { UpgradeModal } from './components/modals/UpgradeModal';
 import { ConfirmDeleteModal } from './components/modals/ConfirmDeleteModal';
 import { OutputPreviewModal } from './components/modals/OutputPreviewModal';
 import { LandingPage } from './components/pages/LandingPage';
@@ -25,10 +24,6 @@ const MainContent: React.FC = () => {
       handleVerifyMagicLink();
     }
   }, []);
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [activePage]);
 
   return (
     <main className="flex-1 w-full min-h-[calc(100vh-4rem)] pt-20">
@@ -53,7 +48,6 @@ export default function App() {
           <MainContent />
           <Footer />
 
-          <UpgradeModal />
           <ConfirmDeleteModal />
           <OutputPreviewModal />
           <ToastContainer />
