@@ -5,7 +5,7 @@ import { useApp } from '../../context/AppContext';
 import { PRICING_PLANS } from '../../data/plans';
 import { initializePaddle, type Paddle } from '@paddle/paddle-js';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = (import.meta.env.VITE_API_URL || '').replace(/^\uFEFF/, '');
 
 // Paddle Price IDs from environment
 const PADDLE_PRICES = {
@@ -27,11 +27,11 @@ export const PricingPage: React.FC = () => {
 
   // Initialize Paddle
   useEffect(() => {
-    const vendorId = import.meta.env.VITE_PADDLE_VENDOR_ID;
+    const sellerId = import.meta.env.VITE_PADDLE_VENDOR_ID;
     const environment = import.meta.env.VITE_PADDLE_ENVIRONMENT || 'sandbox';
-    if (vendorId) {
+    if (sellerId) {
       initializePaddle({
-        vendor: parseInt(vendorId, 10),
+        sellerId: parseInt(sellerId, 10),
         environment: environment as 'sandbox' | 'production',
       }).then(setPaddle).catch(console.error);
     }

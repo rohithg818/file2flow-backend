@@ -13,7 +13,7 @@ export interface ConversionResult {
 }
 
 const ENGINE_URL = import.meta.env.VITE_ENGINE_URL || 'http://localhost:5000';
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = (import.meta.env.VITE_API_URL || '').replace(/^\uFEFF/, '');
 const IS_PROD = !import.meta.env.DEV;
 
 // ============================================================
