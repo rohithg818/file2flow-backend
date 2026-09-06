@@ -1,0 +1,17 @@
+{
+  "company": "File2Flow",
+  "team": [
+    {
+      "name": "Alice",
+      "role": "Lead"
+    },
+    {
+      "name": "Bob",
+      "role": "Designer"
+    }
+  ],
+  "stats": {
+    "conversions": 15420,
+    "rate": 0.997
+  }
+}

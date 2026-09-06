@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  engine:
+    build:
+      context: .
+      dockerfile: engine/Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/engine/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - ENGINE_URL=http://engine:5000
+      - FRONTEND_URL=http://localhost:3000
+      - NODE_ENV=development
+    env_file:
+      - .env
+    depends_on:
+      engine:
+        condition: service_healthy
+    restart: unless-stopped

@@ -1,0 +1,18 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isAuth() { return request.auth != null; }
+    function isUser(userId) { return isAuth() && request.auth.uid == userId; }
+
+    match /users/{userId}/{allPaths=**} {
+      allow read: if isUser(userId);
+      allow write: if false;
+      allow delete: if false;
+    }
+
+    match /public/{allPaths=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}
