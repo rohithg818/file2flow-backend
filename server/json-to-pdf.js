@@ -3,349 +3,22 @@ const fetch = require('node-fetch').default || require('node-fetch');
 const FormData = require('form-data');
 const { getSupabase } = require('./middleware/supabase');
 const { retryFetch } = require('./retryFetch');
+const {
+  classifyJson,
+  isSystemField,
+  isUuidValue,
+  escapeHtml,
+  renderAllBlocks,
+  renderBlock,
+  renderBlockData,
+} = require('./classify');
 
 const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
 const MISTRAL_API_URL = 'https://api.mistral.ai/v1/chat/completions';
 const GOTENBERG_URL = process.env.GOTENBERG_URL || 'https://gotenberg-31r8.onrender.com';
 
 // ============================================================
-// SYSTEM FIELD DETECTION (pattern-based, deterministic)
-// ============================================================
-
-const SYSTEM_FIELD_PATTERNS = [
-  /^_/,
-  /^id$/i,
-  /^uuid$/i,
-  /^owner/i,
-  /^created_/i,
-  /^modified_/i,
-  /^updated_/i,
-  /^deleted_/i,
-  /^docstatus$/i,
-  /^revision$/i,
-  /^checksum$/i,
-  /^hash$/i,
-  /^etag$/i,
-  /^__v$/i,
-  /^version$/i,
-];
-
-function isSystemField(key) {
-  return SYSTEM_FIELD_PATTERNS.some(p => p.test(key));
-}
-
-// ============================================================
-// STEP 1: DETERMINISTIC STRUCTURAL CLASSIFIER
-// ============================================================
-
-const HEADING_KEY_PATTERNS = [
-  /^name$/i,
-  /^title$/i,
-  /^label$/i,
-  /^subject$/i,
-  /^heading$/i,
-  /^clause[_\s]?title$/i,
-  /^section[_\s]?title$/i,
-  /^item[_\s]?name$/i,
-  /^description$/i,
-  /^summary$/i,
-  /^topic$/i,
-  /^question$/i,
-];
-
-const LONG_TEXT_THRESHOLD = 100;
-
-function isLongText(value) {
-  return typeof value === 'string' && value.length > LONG_TEXT_THRESHOLD;
-}
-
-function isDateField(key, value) {
-  if (typeof value !== 'string') return false;
-  return /date|time|created|updated|modified|timestamp/i.test(key) ||
-    /^\d{4}-\d{2}-\d{2}/.test(value);
-}
-
-function isLikelyTitle(key) {
-  return HEADING_KEY_PATTERNS.some(p => p.test(key));
-}
-
-function findHeadingKey(keys, sample) {
-  const preferred = keys.find(k => isLikelyTitle(k));
-  if (preferred) return preferred;
-  const shortString = keys.find(k =>
-    typeof sample[k] === 'string' &&
-    sample[k].length > 0 &&
-    sample[k].length < 200 &&
-    !isSystemField(k) &&
-    !isDateField(k, sample[k])
-  );
-  return shortString || keys[0];
-}
-
-function findBodyKey(keys, headingKey, sample) {
-  return keys.find(k =>
-    k !== headingKey &&
-    typeof sample[k] === 'string' &&
-    sample[k].length > LONG_TEXT_THRESHOLD
-  );
-}
-
-// Classify a JSON value into a block type
-function classifyValue(key, value) {
-  if (value === null || value === undefined) return { type: 'noise', reason: 'null' };
-  if (isSystemField(key)) return { type: 'noise', reason: 'system_field' };
-
-  if (Array.isArray(value)) {
-    if (value.length === 0) return { type: 'noise', reason: 'empty_array' };
-
-    const first = value[0];
-    if (first === null || first === undefined) return { type: 'noise', reason: 'empty_elements' };
-
-    if (typeof first !== 'object') {
-      return { type: 'scalar-list', data: value };
-    }
-
-    const objKeys = Object.keys(first).filter(k => !isSystemField(k));
-    const hasLongText = objKeys.some(k => isLongText(first[k]));
-
-    if (hasLongText) {
-      return {
-        type: 'longtext-list',
-        data: value,
-        headingKey: findHeadingKey(objKeys, first),
-        bodyKey: findBodyKey(objKeys, findHeadingKey(objKeys, first), first),
-        displayKeys: objKeys,
-      };
-    }
-
-    return {
-      type: 'table',
-      data: value,
-      columns: objKeys,
-    };
-  }
-
-  if (typeof value === 'object') {
-    const childKeys = Object.keys(value).filter(k => !isSystemField(k));
-    if (childKeys.length === 0) return { type: 'noise', reason: 'empty_object' };
-
-    const hasLongText = childKeys.some(k => isLongText(value[k]));
-    if (hasLongText) {
-      return { type: 'longtext-block', data: value, keys: childKeys };
-    }
-
-    return { type: 'sub-section', data: value, keys: childKeys };
-  }
-
-  return { type: 'scalar', data: value, key };
-}
-
-// Main classifier: walks JSON, returns array of classified blocks
-function classifyJson(data) {
-  if (data === null || data === undefined) {
-    return { title: 'Data Report', intro: '', blocks: [] };
-  }
-
-  if (typeof data !== 'object') {
-    return {
-      title: 'Data Report',
-      intro: '',
-      blocks: [{ key: 'value', classification: { type: 'scalar', data, key: 'value' } }],
-    };
-  }
-
-  // If root is an array
-  if (Array.isArray(data)) {
-    if (data.length === 0) {
-      return { title: 'Data Report', intro: '', blocks: [] };
-    }
-    const first = data[0];
-    if (typeof first !== 'object' || first === null) {
-      return {
-        title: 'Data Report',
-        intro: '',
-        blocks: [{ key: 'data', classification: { type: 'scalar-list', data } }],
-      };
-    }
-    const objKeys = Object.keys(first).filter(k => !isSystemField(k));
-    const hasLongText = objKeys.some(k => isLongText(first[k]));
-    if (hasLongText) {
-      return {
-        title: 'Data Report',
-        intro: '',
-        blocks: [{
-          key: 'data',
-          classification: {
-            type: 'longtext-list',
-            data,
-            headingKey: findHeadingKey(objKeys, first),
-            bodyKey: findBodyKey(objKeys, findHeadingKey(objKeys, first), first),
-            displayKeys: objKeys,
-          },
-        }],
-      };
-    }
-    return {
-      title: 'Data Report',
-      intro: '',
-      blocks: [{ key: 'data', classification: { type: 'table', data, columns: objKeys } }],
-    };
-  }
-
-  // Root is object — classify each top-level key
-  const blocks = [];
-  let title = '';
-  let intro = '';
-
-  const entries = Object.entries(data);
-  for (const [key, value] of entries) {
-    const classification = classifyValue(key, value);
-    if (classification.type === 'noise') continue;
-
-    blocks.push({ key, classification });
-  }
-
-  // Try to infer title from first short scalar string
-  for (const block of blocks) {
-    if (block.classification.type === 'scalar' && typeof block.classification.data === 'string') {
-      const val = block.classification.data;
-      if (val.length > 2 && val.length < 200 && !isDateField(block.key, val)) {
-        title = val;
-        break;
-      }
-    }
-  }
-
-  return { title: title || 'Data Report', intro, blocks };
-}
-
-// ============================================================
-// STEP 1b: DETERMINISTIC BLOCK RENDERER (no AI)
-// ============================================================
-
-function renderScalarList(data) {
-  return '<ul>' + data.map(item =>
-    `<li>${escapeHtml(String(item ?? ''))}</li>`
-  ).join('') + '</ul>';
-}
-
-function renderTable(data, columns) {
-  if (columns.length === 0) return '';
-  let html = '<table><thead><tr>';
-  columns.forEach(k => { html += `<th>${escapeHtml(k)}</th>`; });
-  html += '</tr></thead><tbody>';
-  data.forEach(item => {
-    html += '<tr>';
-    columns.forEach(k => {
-      const val = item[k];
-      if (val && typeof val === 'object') {
-        html += `<td>${escapeHtml(JSON.stringify(val))}</td>`;
-      } else {
-        html += `<td>${escapeHtml(String(val ?? ''))}</td>`;
-      }
-    });
-    html += '</tr>';
-  });
-  html += '</tbody></table>';
-  return html;
-}
-
-function renderLongTextList(block) {
-  const { data, headingKey, bodyKey, displayKeys } = block.classification;
-  return data.map((item, i) => {
-    const heading = item[headingKey] ? escapeHtml(String(item[headingKey])) : `Section ${i + 1}`;
-    let body = '';
-    if (bodyKey && bodyKey !== headingKey) {
-      body = `<p>${escapeHtml(String(item[bodyKey] ?? ''))}</p>`;
-    }
-    const otherFields = displayKeys.filter(k =>
-      k !== headingKey && k !== bodyKey && typeof item[k] !== 'object'
-    );
-    if (otherFields.length > 0) {
-      body += '<div class="kv-list">' + otherFields.map(k =>
-        `<div class="kv"><strong>${escapeHtml(k)}:</strong> ${escapeHtml(String(item[k] ?? ''))}</div>`
-      ).join('') + '</div>';
-    }
-    return `<div class="section-block"><h3>${heading}</h3>${body}</div>`;
-  }).join('\n');
-}
-
-function renderLongTextBlock(block) {
-  const { data, keys } = block.classification;
-  return keys.map(k => {
-    const val = data[k];
-    if (typeof val === 'string') {
-      return `<div class="text-block"><h4>${escapeHtml(k)}</h4><p>${escapeHtml(val)}</p></div>`;
-    }
-    if (val && typeof val === 'object') {
-      return `<div class="text-block"><h4>${escapeHtml(k)}</h4>${renderBlockData(val)}</div>`;
-    }
-    if (val === null || val === undefined) return '';
-    return `<div class="kv"><strong>${escapeHtml(k)}:</strong> ${escapeHtml(String(val))}</div>`;
-  }).join('\n');
-}
-
-function renderSubSection(block) {
-  const { data, keys } = block.classification;
-  return keys.map(k => {
-    const val = data[k];
-    if (val === null || val === undefined) return '';
-    if (typeof val === 'object') {
-      return `<div class="subsection"><h4>${escapeHtml(k)}</h4>${renderBlockData(val)}</div>`;
-    }
-    return `<div class="kv"><strong>${escapeHtml(k)}:</strong> ${escapeHtml(String(val))}</div>`;
-  }).join('\n');
-}
-
-function renderBlockData(data) {
-  if (data === null || data === undefined) return '';
-  if (typeof data === 'boolean') return data ? 'Yes' : 'No';
-  if (typeof data === 'number') return escapeHtml(String(data));
-  if (typeof data === 'string') return escapeHtml(data);
-  if (Array.isArray(data)) {
-    if (data.length === 0) return '<em>No data</em>';
-    const first = data[0];
-    if (typeof first !== 'object' || first === null) return renderScalarList(data);
-    const keys = Object.keys(first).filter(k => !isSystemField(k));
-    return renderTable(data, keys);
-  }
-  if (typeof data === 'object') {
-    const entries = Object.entries(data).filter(([k]) => !isSystemField(k));
-    return entries.map(([k, v]) => {
-      if (v === null || v === undefined) return '';
-      if (typeof v === 'object') return `<div class="subsection"><h4>${escapeHtml(k)}</h4>${renderBlockData(v)}</div>`;
-      return `<div class="kv"><strong>${escapeHtml(k)}:</strong> ${escapeHtml(String(v))}</div>`;
-    }).join('\n');
-  }
-  return escapeHtml(String(data));
-}
-
-function renderBlock(block) {
-  const c = block.classification;
-  switch (c.type) {
-    case 'scalar':
-      return `<div class="kv"><strong>${escapeHtml(block.key)}:</strong> ${escapeHtml(String(c.data ?? ''))}</div>`;
-    case 'scalar-list':
-      return `<div class="block"><h3>${escapeHtml(block.key)}</h3>${renderScalarList(c.data)}</div>`;
-    case 'table':
-      return `<div class="block"><h3>${escapeHtml(block.key)}</h3>${renderTable(c.data, c.columns)}</div>`;
-    case 'longtext-list':
-      return renderLongTextList(block);
-    case 'longtext-block':
-      return `<div class="block"><h3>${escapeHtml(block.key)}</h3>${renderLongTextBlock(block)}</div>`;
-    case 'sub-section':
-      return `<div class="block"><h3>${escapeHtml(block.key)}</h3>${renderSubSection(block)}</div>`;
-    default:
-      return '';
-  }
-}
-
-function renderAllBlocks(blocks) {
-  return blocks.map(renderBlock).filter(Boolean).join('\n');
-}
-
-// ============================================================
-// STEP 2: MISTRAL — TITLE/INTRO + PER-BLOCK HTML (minimal)
+// STEP 2: MISTRAL — TITLE/INTRO (grounded in classified structure)
 // ============================================================
 
 async function mistralTitleAndIntro(classified) {
@@ -355,14 +28,46 @@ async function mistralTitleAndIntro(classified) {
     return { title: classified.title, intro: '' };
   }
 
-  const sampleKeys = classified.blocks.map(b => b.key).slice(0, 20);
-  const sample = JSON.stringify(classified.blocks.slice(0, 5).map(b => ({
-    key: b.key,
-    type: b.classification.type,
-    sample: typeof b.classification.data === 'object'
-      ? JSON.stringify(b.classification.data).slice(0, 200)
-      : String(b.classification.data).slice(0, 200),
-  })));
+  const typeBreakdown = {};
+  for (const block of classified.blocks) {
+    const t = block.classification.type;
+    if (!typeBreakdown[t]) typeBreakdown[t] = 0;
+    typeBreakdown[t]++;
+  }
+
+  const breakdownStr = Object.entries(typeBreakdown)
+    .map(([type, count]) => `${count} ${type}`)
+    .join(', ');
+
+  const identifiableValues = [];
+  for (const block of classified.blocks) {
+    if (block.classification.type === 'definition-list') {
+      for (const [label, value] of block.classification.pairs) {
+        if (typeof value === 'string' && value.length > 1 && value.length < 100 &&
+            !/date|time|created|updated|modified|timestamp/i.test(label) && !isUuidValue(value)) {
+          identifiableValues.push(`${label}: ${value}`);
+        }
+        if (identifiableValues.length >= 5) break;
+      }
+    }
+    if (identifiableValues.length >= 5) break;
+  }
+
+  let tableRowCount = 0;
+  let listItemCount = 0;
+  for (const block of classified.blocks) {
+    if (block.classification.type === 'table') {
+      tableRowCount += block.classification.data.length;
+    }
+    if (block.classification.type === 'longtext-list') {
+      listItemCount += block.classification.data.length;
+    }
+  }
+
+  const sizeInfo = [];
+  if (tableRowCount > 0) sizeInfo.push(`${tableRowCount} table rows`);
+  if (listItemCount > 0) sizeInfo.push(`${listItemCount} list items`);
+  if (classified.blocks.length > 0) sizeInfo.push(`${classified.blocks.length} sections`);
 
   try {
     const response = await fetch(MISTRAL_API_URL, {
@@ -376,15 +81,21 @@ async function mistralTitleAndIntro(classified) {
         messages: [
           {
             role: 'system',
-            content: `You generate a title and 1-line intro for a document from its JSON structure. Return ONLY valid JSON: {"title":"...","intro":"..."} — no explanation, no markdown fences. Title should be descriptive (max 60 chars). Intro should be one sentence describing what this data contains.`,
+            content: `You generate a title and a 1-2 sentence intro for a document, based on its classified data structure.
+
+Rules:
+- Title: max 60 chars, specific and descriptive — name the actual subject of the data if identifiable (e.g. a record name, company name, or document type found in the fields), not a generic label like "Data Report" unless nothing identifiable exists.
+- Intro: 1-2 sentences. Mention what kind of data this is and roughly how much (e.g. number of table rows, number of list items) if that's evident from the structure provided.
+- Never invent facts not present in the data. If the subject is unclear, default to a neutral but specific description (e.g. "Structured record with 12 fields and 2 data tables") rather than a vague generic title.
+- Return ONLY valid JSON: {"title":"...","intro":"..."} — no explanation, no markdown fences, no extra keys.`,
           },
           {
             role: 'user',
-            content: `Keys: [${sampleKeys.join(', ')}]\n\nSample data:\n${sample}\n\nCurrent title guess: "${classified.title}"`,
+            content: `Structure: ${breakdownStr}\n${sizeInfo.length > 0 ? 'Size: ' + sizeInfo.join(', ') + '\n' : ''}${identifiableValues.length > 0 ? 'Identifiable fields:\n' + identifiableValues.join('\n') + '\n' : ''}Current title guess: "${classified.title}"`,
           },
         ],
         temperature: 0.1,
-        max_tokens: 100,
+        max_tokens: 150,
       }),
       signal: AbortSignal.timeout(10_000),
     });
@@ -442,6 +153,7 @@ function getDocumentCss() {
     th { background: #1e40af; color: white; padding: 7px 10px; text-align: left; font-weight: 600; font-size: 10px; }
     td { padding: 5px 10px; border: 1px solid #e5e7eb; }
     tr:nth-child(even) td { background: #f9fafb; }
+    table.def-list td.def-label { font-weight: 600; color: #1e40af; width: 35%; background: #f0f4ff; }
     ul { padding-left: 18px; margin: 4px 0; }
     li { margin: 2px 0; break-inside: avoid; }
     @media print {
@@ -531,14 +243,12 @@ async function jsonToPdf(jsonBuffer) {
     throw new Error('Invalid JSON data');
   }
 
-  // STEP 1: Deterministic classification (free, instant)
   const classified = classifyJson(jsonData);
 
   if (classified.blocks.length === 0) {
     throw new Error('JSON contains no displayable data (all fields are system/internal)');
   }
 
-  // Check cache for this structural shape
   const hash = computeStructuralHash(jsonData);
   let htmlBody;
 
@@ -546,19 +256,15 @@ async function jsonToPdf(jsonBuffer) {
   if (cached) {
     htmlBody = renderAllBlocks(classified.blocks);
   } else {
-    // STEP 2: Groq picks title/intro (small, targeted call)
     const meta = await mistralTitleAndIntro(classified);
     classified.title = meta.title;
     classified.intro = meta.intro;
 
-    // Render all blocks deterministically (type was already assigned in Step 1)
     htmlBody = renderAllBlocks(classified.blocks);
 
-    // Cache the rendered body for this structural shape
     await saveTemplate(hash, htmlBody, classified.blocks.map(b => b.key));
   }
 
-  // Assemble final document
   const fullHtml = `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8">
@@ -571,7 +277,6 @@ async function jsonToPdf(jsonBuffer) {
 </body>
 </html>`;
 
-  // Convert HTML → PDF via Gotenberg Chromium
   const htmlBuffer = Buffer.from(fullHtml, 'utf-8');
   const form = new FormData();
   form.append('files', htmlBuffer, { filename: 'index.html', contentType: 'text/html' });
@@ -596,22 +301,11 @@ async function jsonToPdf(jsonBuffer) {
   return pdfBuffer;
 }
 
-// ============================================================
-// HELPERS
-// ============================================================
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
 module.exports = {
   jsonToPdf,
   classifyJson,
   isSystemField,
+  isUuidValue,
   renderBlock,
   renderAllBlocks,
   renderBlockData,
