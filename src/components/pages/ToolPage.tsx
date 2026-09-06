@@ -420,13 +420,22 @@ export function ToolPage() {
                 <p className="text-sm" style={{ color: '#059669' }}>{result.filename}</p>
               </div>
             </div>
-            <button
-              onClick={handleDownload}
-              className="flex items-center gap-2 px-4 py-2 text-white rounded-lg transition text-sm font-medium"
-              style={{ background: '#10B981' }}
-            >
-              <Download size={16} /> Download
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => { setStatus('idle'); setResult(null); setFiles([]); setError(''); }}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg transition text-sm font-medium"
+                style={{ background: '#E0E7FF', color: '#3730A3' }}
+              >
+                <Upload size={16} /> Convert another
+              </button>
+              <button
+                onClick={handleDownload}
+                className="flex items-center gap-2 px-4 py-2 text-white rounded-lg transition text-sm font-medium"
+                style={{ background: '#10B981' }}
+              >
+                <Download size={16} /> Download
+              </button>
+            </div>
           </div>
         </div>
       )}
