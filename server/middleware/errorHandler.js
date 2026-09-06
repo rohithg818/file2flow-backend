@@ -70,7 +70,7 @@ function errorHandler(err, req, res, _next) {
   });
 
   res.status(statusCode).json({
-    error: message,
+    error: process.env.NODE_ENV === 'production' ? 'Internal server error' : message,
   });
 }
 

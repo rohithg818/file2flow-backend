@@ -93,6 +93,33 @@ const CONVERSION_MAP = {
   'image:txt':  { engine: 'image-to-html' },
 };
 
+// Extension → MIME type (authoritative source for Gotenberg)
+const EXT_TO_MIME = {
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  doc:  'application/msword',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  xls:  'application/vnd.ms-excel',
+  pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  ppt:  'application/vnd.ms-powerpoint',
+  odt:  'application/vnd.oasis.opendocument.text',
+  ods:  'application/vnd.oasis.opendocument.spreadsheet',
+  odp:  'application/vnd.oasis.opendocument.presentation',
+  rtf:  'text/rtf',
+  html: 'text/html',
+  htm:  'text/html',
+  md:   'text/markdown',
+  txt:  'text/plain',
+  png:  'image/png',
+  jpg:  'image/jpeg',
+  jpeg: 'image/jpeg',
+  webp: 'image/webp',
+  gif:  'image/gif',
+  svg:  'image/svg+xml',
+  pdf:  'application/pdf',
+  csv:  'text/csv',
+  json: 'application/json',
+};
+
 // MIME type to Gotenberg endpoint mapping
 const GOTENBERG_MIME_MAP = {
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '/forms/libreoffice/convert',
@@ -120,11 +147,13 @@ const GOTENBERG_MIME_MAP = {
 // ============================================================
 
 async function gotenbergLibreOffice(buffer, filename, mimeType) {
-  const endpoint = GOTENBERG_MIME_MAP[mimeType];
-  if (!endpoint) throw new Error(`Unsupported MIME type for Gotenberg: ${mimeType}`);
+  const ext = filename.split('.').pop().toLowerCase();
+  const resolvedMime = EXT_TO_MIME[ext] || mimeType;
+  const endpoint = GOTENBERG_MIME_MAP[resolvedMime];
+  if (!endpoint) throw new Error(`Unsupported MIME type for Gotenberg: ${resolvedMime} (ext: ${ext})`);
 
   const form = new FormData();
-  form.append('files', buffer, { filename, contentType: mimeType });
+  form.append('files', buffer, { filename, contentType: resolvedMime });
 
   const response = await fetch(`${GOTENBERG_URL}${endpoint}`, {
     method: 'POST',
