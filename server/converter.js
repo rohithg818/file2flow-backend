@@ -42,8 +42,6 @@ const CONVERSION_MAP = {
   'txt:pdf':    { engine: 'text-to-pdf' },
 
   // === FROM PDF ===
-  'pdf:docx':   { engine: 'gotenberg-libreoffice-reverse', lossy: true },
-  'pdf:xlsx':   { engine: 'gotenberg-libreoffice-reverse', lossy: true },
   'pdf:html':   { engine: 'pdf-to-html' },
   'pdf:txt':    { engine: 'pdf-to-text' },
   'pdf:md':     { engine: 'pdf-to-text' },
