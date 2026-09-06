@@ -135,12 +135,18 @@ async function extractPages(pdfBuffer) {
 async function mergePdf(pdfBuffers) {
   const mergedDoc = await PDFDocument.create();
 
-  for (const buffer of pdfBuffers) {
+  console.log(`[merge] Starting merge of ${pdfBuffers.length} PDFs`);
+
+  for (let i = 0; i < pdfBuffers.length; i++) {
+    const buffer = pdfBuffers[i];
     const sourceDoc = await PDFDocument.load(buffer, { ignoreEncryption: true });
+    const pageCount = sourceDoc.getPageCount();
+    console.log(`[merge] Source ${i + 1}: ${pageCount} pages`);
     const copiedPages = await mergedDoc.copyPages(sourceDoc, sourceDoc.getPageIndices());
     copiedPages.forEach(page => mergedDoc.addPage(page));
   }
 
+  console.log(`[merge] Output: ${mergedDoc.getPageCount()} pages`);
   const bytes = await mergedDoc.save();
   return Buffer.from(bytes);
 }
