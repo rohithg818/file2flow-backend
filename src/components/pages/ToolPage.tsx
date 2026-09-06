@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Upload, Download, ArrowLeft, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = (import.meta.env.VITE_API_URL || '').replace(/^\uFEFF/, '');
 
 interface ToolConfig {
   id: string;
