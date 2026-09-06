@@ -26,6 +26,10 @@ const MainContent: React.FC = () => {
     }
   }, []);
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [activePage]);
+
   return (
     <main className="flex-1 w-full min-h-[calc(100vh-4rem)] pt-20">
       {activePage === 'landing' && <LandingPage />}
