@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /account
+Disallow: /auth
+
+Sitemap: https://file2flow.com/sitemap.xml
