@@ -1,0 +1,6 @@
+{
+  "name": "File2Flow - File to PDF Converter",
+  "description": "Files in. PDFs out. Convert documents, spreadsheets, images, JSON, Markdown, and HTML into clean PDFs quickly and without the hassle.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

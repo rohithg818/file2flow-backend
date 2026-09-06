@@ -1,0 +1,31 @@
+﻿TAX INVOICE
+
+Invoice #: INV-2026-1042
+Date: August 25, 2026
+Due Date: September 25, 2026
+
+BILL TO:
+Acme Global Services Pvt Ltd
+100 Market Street, San Francisco, CA 94105
+GSTIN: 29AABCA1234F1Z5
+
+SHIP TO:
+Acme Global Services - Warehouse
+250 Industrial Blvd, Los Angeles, CA 90001
+
+LINE ITEMS:
+1. Cloud Workspace Subscription (12 Months) — ₹1,20,000.00
+2. Document API Processing Tier — ₹45,000.00
+3. Priority Onboarding & Setup — ₹35,000.00
+4. Annual Maintenance Contract — ₹15,000.00
+
+Subtotal: ₹2,15,000.00
+GST (18%): ₹38,700.00
+Total Due: ₹2,53,700.00
+
+PAYMENT TERMS:
+- Net 30 days from invoice date
+- UPI: acme-payments@okicici
+- Bank: ICici Bank, Branch: MG Road, Bangalore
+
+Thank you for your business!

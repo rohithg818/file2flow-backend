@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>File2Flow Converter Test</title>
+  <style>
+    body { font-family: monospace; background: #111; color: #0f0; padding: 20px; }
+    .test { margin: 10px 0; padding: 10px; border: 1px solid #333; }
+    .pass { color: #0f0; } .fail { color: #f00; } .info { color: #00aaff; }
+  </style>
+</head>
+<body>
+  <h1>File2Flow Converter Test</h1>
+  <div id="results"></div>
+  <script type="module">
+    const results = document.getElementById('results');
+    function log(msg, cls='info') {
+      const div = document.createElement('div');
+      div.className = cls;
+      div.textContent = msg;
+      results.appendChild(div);
+    }
+    
+    async function runTests() {
+      const { convertFile } = await import('/src/services/converter.ts');
+      
+      // Test 1: Plain text → PDF
+      log('=== TEST 1: TXT → PDF ===', 'info');
+      const txtContent = `QUARTERLY REPORT
+
+EXECUTIVE SUMMARY
+Revenue grew 340% in Q1-Q3 FY2026-27.
+
+REVENUE BREAKDOWN
+Q1: ₹14,50,000
+Q2: ₹18,20,000
+Q3: ₹22,90,000
+
+KEY METRICS
+- Monthly Active Users: 45,000
+- Conversion Rate: 8.4%
+- Customer Retention: 94%
+
+PROJECTIONS
+Q4 projected: ₹28,50,000
+
+RISK FACTORS
+- Market competition
+- Currency fluctuation`;
+      
+      const txtFile = new File([txtContent], 'Report.txt', { type: 'text/plain' });
+      const txtItem = {
+        id: 'test-txt', file: txtFile, name: 'Report.txt', size: txtContent.length,
+        type: 'text/plain', format: 'txt', outputFormat: 'pdf', progress: 0,
+        status: 'idle', createdAt: Date.now()
+      };
+      
+      const settings = {
+        outputFormat: 'pdf', pageSize: 'a4', orientation: 'portrait',
+        margin: 'normal', quality: 'high', addPageNumbers: true,
+        watermarkText: '', jsonMode: 'report', imageFit: 'contain'
+      };
+      
+      try {
+        const result = await convertFile(txtItem, settings);
+        log(`✅ TXT→PDF: Size=${(result.size/1024).toFixed(1)}KB, Pages=${result.pageCount}, Time=${result.conversionTimeMs}ms`, 'pass');
+        
+        // Download test PDF
+        const a = document.createElement('a');
+        a.href = result.blobUrl;
+        a.download = 'Test_Report.pdf';
+        a.click();
+        log('   → Downloaded: Test_Report.pdf');
+      } catch(e) { log(`❌ TXT→PDF: ${e.message}`, 'fail'); }
+      
+      // Test 2: JSON → PDF
+      log('=== TEST 2: JSON → PDF ===', 'info');
+      const jsonData = JSON.stringify({
+        company: "File2Flow", founded: 2024, employees: 25,
+        product: { name: "File2Flow", features: ["PDF", "AI Templates", "Batch"] },
+        pricing: { free: "₹0", starter: "₹299", pro: "₹999" }
+      }, null, 2);
+      
+      const jsonFile = new File([jsonData], 'Data.json', { type: 'application/json' });
+      const jsonItem = {
+        id: 'test-json', file: jsonFile, name: 'Data.json', size: jsonData.length,
+        type: 'application/json', format: 'json', outputFormat: 'pdf', progress: 0,
+        status: 'idle', createdAt: Date.now()
+      };
+      
+      try {
+        const result = await convertFile(jsonItem, settings);
+        log(`✅ JSON→PDF: Size=${(result.size/1024).toFixed(1)}KB, Pages=${result.pageCount}, Time=${result.conversionTimeMs}ms`, 'pass');
+        const a = document.createElement('a'); a.href = result.blobUrl; a.download = 'Test_JSON.pdf'; a.click();
+        log('   → Downloaded: Test_JSON.pdf');
+      } catch(e) { log(`❌ JSON→PDF: ${e.message}`, 'fail'); }
+      
+      // Test 3: Markdown → HTML
+      log('=== TEST 3: MD → HTML ===', 'info');
+      const mdContent = `# Product Strategy
+
+## Vision
+Build the best converter.
+
+### Deliverables
+- Clean UI
+- Accurate previews
+- Direct downloads`;
+      
+      const mdFile = new File([mdContent], 'Strategy.md', { type: 'text/markdown' });
+      const mdItem = {
+        id: 'test-md', file: mdFile, name: 'Strategy.md', size: mdContent.length,
+        type: 'text/markdown', format: 'markdown', outputFormat: 'html', progress: 0,
+        status: 'idle', createdAt: Date.now()
+      };
+      
+      try {
+        const result = await convertFile(mdItem, { ...settings, outputFormat: 'html' });
+        log(`✅ MD→HTML: Size=${(result.size/1024).toFixed(1)}KB, Pages=${result.pageCount}, Time=${result.conversionTimeMs}ms`, 'pass');
+        const a = document.createElement('a'); a.href = result.blobUrl; a.download = 'Test_Strategy.html'; a.click();
+        log('   → Downloaded: Test_Strategy.html');
+      } catch(e) { log(`❌ MD→HTML: ${e.message}`, 'fail'); }
+      
+      // Test 4: JSON → HTML (formatted)
+      log('=== TEST 4: JSON → HTML ===', 'info');
+      const jsonItem2 = { ...jsonItem, id: 'test-json-html', outputFormat: 'html' };
+      try {
+        const result = await convertFile(jsonItem2, { ...settings, outputFormat: 'html' });
+        log(`✅ JSON→HTML: Size=${(result.size/1024).toFixed(1)}KB, Pages=${result.pageCount}, Time=${result.conversionTimeMs}ms`, 'pass');
+        const a = document.createElement('a'); a.href = result.blobUrl; a.download = 'Test_JSON.html'; a.click();
+        log('   → Downloaded: Test_JSON.html');
+      } catch(e) { log(`❌ JSON→HTML: ${e.message}`, 'fail'); }
+      
+      // Test 5: All formats → TXT
+      log('=== TEST 5: JSON → TXT ===', 'info');
+      const jsonItem3 = { ...jsonItem, id: 'test-json-txt', outputFormat: 'txt' };
+      try {
+        const result = await convertFile(jsonItem3, { ...settings, outputFormat: 'txt' });
+        log(`✅ JSON→TXT: Size=${(result.size/1024).toFixed(1)}KB, Pages=${result.pageCount}, Time=${result.conversionTimeMs}ms`, 'pass');
+        const a = document.createElement('a'); a.href = result.blobUrl; a.download = 'Test_JSON.txt'; a.click();
+        log('   → Downloaded: Test_JSON.txt');
+      } catch(e) { log(`❌ JSON→TXT: ${e.message}`, 'fail'); }
+      
+      log('\n=== ALL TESTS COMPLETE ===', 'info');
+      log('Check the Downloads folder for output files', 'info');
+    }
+    
+    runTests();
+  </script>
+</body>
+</html>

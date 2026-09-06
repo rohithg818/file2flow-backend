@@ -1,0 +1,22 @@
+﻿{
+  "company": "File2Flow",
+  "founded": 2024,
+  "headquarters": "Bangalore, India",
+  "employees": 25,
+  "product": {
+    "name": "File2Flow",
+    "description": "Universal file format converter",
+    "features": ["PDF conversion", "Batch processing", "AI templates", "Cloud storage"],
+    "pricing": {
+      "free": { "conversions": 10, "storage": "0 GB" },
+      "starter": { "price": "₹299/mo", "conversions": "Unlimited", "storage": "10 GB" },
+      "professional": { "price": "₹999/mo", "conversions": "Unlimited", "storage": "100 GB" }
+    }
+  },
+  "metrics": {
+    "monthlyUsers": 45000,
+    "conversionRate": 0.084,
+    "revenue": 2290000,
+    "growth": 3.4
+  }
+}

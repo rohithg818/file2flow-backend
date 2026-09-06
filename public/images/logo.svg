@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 420" fill="none">
+  <!-- Cloud -->
+  <ellipse cx="256" cy="240" rx="210" ry="130" fill="#2B9BF0"/>
+  <ellipse cx="130" cy="210" rx="130" ry="110" fill="#2B9BF0"/>
+  <ellipse cx="382" cy="210" rx="130" ry="110" fill="#2B9BF0"/>
+  <ellipse cx="256" cy="165" rx="100" ry="90" fill="#2B9BF0"/>
+  <!-- Document -->
+  <rect x="186" y="60" width="140" height="185" rx="5" fill="white"/>
+  <!-- Lines on document -->
+  <rect x="210" y="100" width="92" height="12" rx="6" fill="#2B9BF0"/>
+  <rect x="210" y="124" width="92" height="12" rx="6" fill="#2B9BF0"/>
+  <rect x="210" y="148" width="92" height="12" rx="6" fill="#2B9BF0"/>
+  <rect x="210" y="172" width="60" height="12" rx="6" fill="#2B9BF0"/>
+  <!-- Corner fold -->
+  <path d="M296 60 L326 60 L326 90 Z" fill="#D0E8FB"/>
+  <path d="M296 60 L296 90 L326 90" fill="none" stroke="white" stroke-width="3"/>
+  <!-- F2F text -->
+  <text x="256" y="370" font-family="Georgia, 'Times New Roman', serif" font-size="80" font-weight="bold" fill="#2B9BF0" text-anchor="middle">F2F</text>
+</svg>

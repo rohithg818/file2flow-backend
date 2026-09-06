@@ -1,0 +1,40 @@
+﻿RAHITH KUMAR — SENIOR SOFTWARE ENGINEER
+
+CONTACT
+Email: rahith@fileflow.io
+Phone: +91 98765 43210
+Location: Bangalore, India
+LinkedIn: linkedin.com/in/rahithkumar
+
+SUMMARY
+Results-driven software engineer with 8+ years of experience building scalable web applications. Led teams of 5-12 engineers. Expertise in React, TypeScript, Node.js, and cloud architecture.
+
+EXPERIENCE
+
+Senior Software Engineer — File2Flow (2024-Present)
+- Architected document conversion SaaS serving 50K+ users
+- Reduced conversion latency by 65% through optimized rendering pipeline
+- Implemented real-time collaboration features using WebSocket
+- Tech stack: React 19, TypeScript, Tailwind CSS, Firebase, Groq LLM
+
+Software Engineer — TechCorp India (2020-2024)
+- Built microservices handling 10M+ daily API requests
+- Led migration from monolith to microservice architecture
+- Mentored 8 junior developers
+- Tech stack: Node.js, PostgreSQL, Redis, AWS
+
+Junior Developer — StartupHub (2018-2020)
+- Developed customer-facing React applications
+- Implemented payment integration with Razorpay
+- Reduced page load time by 40%
+
+EDUCATION
+B.Tech Computer Science — IIT Bangalore (2018)
+CGPA: 8.7/10
+
+SKILLS
+JavaScript, TypeScript, React, Node.js, Python, PostgreSQL, Redis, AWS, Docker, Kubernetes, Firebase, Git
+
+CERTIFICATIONS
+- AWS Solutions Architect Associate
+- Google Cloud Professional Developer
