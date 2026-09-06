@@ -27,7 +27,7 @@ const CONTENT_TYPES = {
 
 const CONVERSION_MAP = {
   // === TO PDF (via Gotenberg) ===
-  'docx:pdf':   { engine: 'docx-to-pdf' },
+  'docx:pdf':   { engine: 'gotenberg-libreoffice' },
   'xlsx:pdf':   { engine: 'gotenberg-libreoffice' },
   'pptx:pdf':   { engine: 'pptx-to-pdf' },
   'odt:pdf':    { engine: 'gotenberg-libreoffice' },

@@ -11,11 +11,6 @@ const GOTENBERG_URL = process.env.GOTENBERG_URL || 'https://gotenberg-31r8.onren
 // STRUCTURAL HASHING
 // ============================================================
 
-/**
- * Compute a structural hash of JSON data.
- * Hashes keys + types + nesting shape, NOT values.
- * This means two JSONs with the same shape but different values share a template.
- */
 function computeStructuralHash(data) {
   const shape = extractShape(data);
   return crypto.createHash('sha256').update(JSON.stringify(shape)).digest('hex').slice(0, 32);
@@ -25,7 +20,6 @@ function extractShape(data) {
   if (data === null || data === undefined) return 'null';
   if (Array.isArray(data)) {
     if (data.length === 0) return 'array:empty';
-    // Use the first element's shape (arrays are homogeneous in reports)
     return `array:${extractShape(data[0])}`;
   }
   if (typeof data === 'object') {
@@ -36,12 +30,9 @@ function extractShape(data) {
     }
     return shape;
   }
-  return typeof data; // "string", "number", "boolean"
+  return typeof data;
 }
 
-/**
- * Extract all unique keys from JSON data (flattened).
- */
 function extractAllKeys(data, prefix = '') {
   const keys = [];
   if (data === null || typeof data !== 'object') return keys;
@@ -66,6 +57,73 @@ function extractAllKeys(data, prefix = '') {
 }
 
 // ============================================================
+// SYSTEM/INTERNAL FIELD DETECTION (pattern-based)
+// ============================================================
+
+const SYSTEM_FIELD_PATTERNS = [
+  /^_/,                    // leading underscore
+  /^id$/i,                 // id fields
+  /^uuid$/i,
+  /^owner/i,
+  /^created_/i,
+  /^modified_/i,
+  /^updated_/i,
+  /^deleted_/i,
+  /^docstatus$/i,
+  /^status$/i,
+  /^type$/i,
+  /^_metadata$/i,
+  /^_confidence$/i,
+  /^_version$/i,
+  /^revision$/i,
+  /^checksum$/i,
+  /^hash$/i,
+  /^etag$/i,
+];
+
+function isSystemField(key) {
+  const lower = key.toLowerCase();
+  return SYSTEM_FIELD_PATTERNS.some(p => p.test(lower));
+}
+
+// ============================================================
+// STRUCTURAL ANALYSIS (classify each key)
+// ============================================================
+
+function analyzeStructure(data, maxDepth = 3) {
+  if (maxDepth <= 0) return { type: 'scalar' };
+  if (data === null || data === undefined) return { type: 'scalar' };
+
+  if (Array.isArray(data)) {
+    if (data.length === 0) return { type: 'array', childType: 'empty' };
+    const first = data[0];
+    if (typeof first !== 'object' || first === null) {
+      return { type: 'array', childType: 'scalar' };
+    }
+    // Check if objects have long text fields (>100 chars)
+    const keys = Object.keys(first);
+    const hasLongText = keys.some(k => {
+      const val = first[k];
+      return typeof val === 'string' && val.length > 100;
+    });
+    if (hasLongText) {
+      return { type: 'array', childType: 'longtext', keys, childShape: analyzeStructure(first, maxDepth - 1) };
+    }
+    return { type: 'array', childType: 'object', keys, childShape: analyzeStructure(first, maxDepth - 1) };
+  }
+
+  if (typeof data === 'object') {
+    const entries = {};
+    for (const [key, value] of Object.entries(data)) {
+      entries[key] = analyzeStructure(value, maxDepth - 1);
+    }
+    return { type: 'object', fields: entries };
+  }
+
+  return { type: 'scalar' };
+}
+
+// ============================================================
 // CACHE LAYER (Supabase)
 // ============================================================
 
@@ -82,7 +140,6 @@ async function getCachedTemplate(hash) {
 
     if (error || !data) return null;
 
-    // Update usage stats
     await supabase
       .from('json_templates')
       .update({ last_used_at: new Date().toISOString(), use_count: data.use_count + 1 })
@@ -111,7 +168,7 @@ async function saveTemplate(hash, htmlTemplate, sampleKeys) {
 }
 
 // ============================================================
-// GROQ API CALL
+// GROQ API CALL (structure-aware, domain-agnostic)
 // ============================================================
 
 async function callGroqForTemplate(jsonData, structuralHash) {
@@ -119,22 +176,42 @@ async function callGroqForTemplate(jsonData, structuralHash) {
     throw new Error('GROQ_API_KEY not configured');
   }
 
-  // Send a compact sample (max 500 chars) so Groq understands the shape
-  const sample = JSON.stringify(jsonData).slice(0, 2000);
+  // Analyze structure locally
+  const structure = analyzeStructure(jsonData);
+  const keys = extractAllKeys(jsonData).filter(k => !isSystemField(k.split('.').pop()));
 
-  const systemPrompt = `You are a document template generator. Convert the provided JSON data into clean, semantic HTML suitable for a professional PDF report.
+  // Build compact structural description for Groq
+  const sample = JSON.stringify(jsonData).slice(0, 3000);
+  const structureDesc = JSON.stringify(structure, null, 0);
 
-RULES:
-- Use <table> for arrays of objects (each object = row, keys = column headers)
-- Use <h1>, <h2>, <h3> for nested object keys
-- Use <ul>/<li> for nested objects within a row
-- Use <p> for string values, <strong> for numbers
-- Include basic CSS styling inline (fonts, colors, borders, padding)
-- Make it look professional — like a business report
-- Return ONLY the HTML, no explanation, no markdown fences, no code blocks
-- The HTML should include <!DOCTYPE html>, <head> with <style>, and <body>
-- Use a placeholder like {{DATA}} where the actual data rows will be injected
-- For arrays, use {{TABLE_ROWS}} as the placeholder`;
+  const systemPrompt = `You are a document template generator. Analyze the JSON structure and generate a COMPLETE HTML document that renders it as a professional report.
+
+RULES (structure-based, NOT domain-based):
+1. Classify each top-level key by its structural role:
+   - SHORT STRING (< 100 chars, not a date/ID) → render as a labeled value: <div class="kv"><strong>Label:</strong> value</div>
+   - NUMBER → render as a labeled value with formatting
+   - BOOLEAN → render as Yes/No
+   - ARRAY OF SCALARS → render as a bulleted list
+   - ARRAY OF OBJECTS WITH SHORT FIELDS → render as a TABLE
+   - ARRAY OF OBJECTS WITH LONG TEXT (>100 chars) → render as HEADED SECTIONS (heading from a "name"/"title"/"label"/"subject" field, body from the long text field)
+   - NESTED OBJECT → render as a SUB-SECTION with its own heading
+   - NULL → skip
+
+2. FILTER OUT system/internal fields (leading underscore, id, owner, created_*, modified_*, status, type, _metadata, _confidence, etc.) — do NOT render them
+
+3. PICK the best "title" field: look for a key whose value is a short descriptive string that names the document (not an ID). Use it as the page title.
+
+4. CSS requirements:
+   - Font: 'Segoe UI', Arial, sans-serif
+   - A4 page size with 20mm margins
+   - h1 for title, h2 for sections, h3 for sub-sections
+   - Tables: border-collapse, alternating row colors
+   - Print-friendly: break-inside: avoid on tables and sections
+   - Professional blue (#2563eb) accent color
+
+5. Return ONLY the complete HTML document (with <!DOCTYPE html>, <head>, <style>, <body>). No explanation, no markdown fences.
+
+6. DO NOT use placeholders like {{DATA}} or {{TABLE_ROWS}}. Render the actual data from the JSON into the HTML.`;
 
   const response = await fetch(GROQ_API_URL, {
     method: 'POST',
@@ -146,9 +223,9 @@ RULES:
       model: 'llama-3.3-70b-versatile',
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Generate an HTML template for this JSON structure:\n\n${sample}` },
+        { role: 'user', content: `Structure analysis:\n${structureDesc}\n\nJSON data:\n${sample}` },
       ],
-      temperature: 0.3,
+      temperature: 0.2,
       max_tokens: 4096,
     }),
     signal: AbortSignal.timeout(30_000),
@@ -164,7 +241,7 @@ RULES:
 
   if (!html) throw new Error('Groq returned empty response');
 
-  // Clean up: remove markdown fences if present
+  // Clean up markdown fences if present
   let cleaned = html.replace(/```html\n?/gi, '').replace(/```\n?/gi, '').trim();
 
   // Validate it looks like HTML
@@ -176,96 +253,139 @@ RULES:
 }
 
 // ============================================================
+// SMART DATA RENDERER (structure-based, domain-agnostic)
+// ============================================================
+
+function renderJsonData(data, depth = 0) {
+  if (data === null || data === undefined) return '';
+  if (typeof data === 'boolean') return data ? 'Yes' : 'No';
+  if (typeof data === 'number') return escapeHtml(String(data));
+  if (typeof data === 'string') return escapeHtml(data);
+
+  // Array
+  if (Array.isArray(data)) {
+    if (data.length === 0) return '<p style="color:#999;font-style:italic;">No data</p>';
+
+    const first = data[0];
+
+    // Array of scalars
+    if (typeof first !== 'object' || first === null) {
+      return '<ul>' + data.map(item => `<li>${escapeHtml(String(item ?? ''))}</li>`).join('') + '</ul>';
+    }
+
+    // Array of objects — check for long text fields
+    const keys = Object.keys(first);
+    const systemKeys = keys.filter(k => isSystemField(k));
+    const displayKeys = keys.filter(k => !isSystemField(k));
+    const hasLongText = displayKeys.some(k => {
+      const val = first[k];
+      return typeof val === 'string' && val.length > 100;
+    });
+
+    if (hasLongText) {
+      // Render as headed sections
+      return data.map((item, i) => {
+        // Find heading field: first key with "name", "title", "label", "subject", "heading"
+        const headingKey = displayKeys.find(k => /name|title|label|subject|heading/i.test(k)) || displayKeys[0];
+        const bodyKey = displayKeys.find(k => k !== headingKey && typeof item[k] === 'string' && item[k].length > 50) || displayKeys.find(k => k !== headingKey);
+
+        const heading = item[headingKey] ? escapeHtml(String(item[headingKey])) : `Section ${i + 1}`;
+        let body = '';
+        if (bodyKey && bodyKey !== headingKey) {
+          body = `<p>${escapeHtml(String(item[bodyKey] ?? ''))}</p>`;
+        }
+        // Add other scalar fields
+        const otherFields = displayKeys.filter(k => k !== headingKey && k !== bodyKey && typeof item[k] !== 'object');
+        if (otherFields.length > 0) {
+          body += otherFields.map(k =>
+            `<div class="kv"><strong>${escapeHtml(k)}:</strong> ${escapeHtml(String(item[k] ?? ''))}</div>`
+          ).join('');
+        }
+
+        return `<div class="section-block"><h3>${heading}</h3>${body}</div>`;
+      }).join('\n');
+    }
+
+    // Render as table
+    let html = '<table><thead><tr>';
+    displayKeys.forEach(k => { html += `<th>${escapeHtml(k)}</th>`; });
+    html += '</tr></thead><tbody>';
+    data.forEach(item => {
+      html += '<tr>';
+      displayKeys.forEach(k => {
+        const val = item[k];
+        if (val && typeof val === 'object') {
+          html += `<td>${escapeHtml(JSON.stringify(val))}</td>`;
+        } else {
+          html += `<td>${escapeHtml(String(val ?? ''))}</td>`;
+        }
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    return html;
+  }
+
+  // Object
+  if (typeof data === 'object') {
+    const entries = Object.entries(data).filter(([k]) => !isSystemField(k));
+    return entries.map(([key, val]) => {
+      if (val && typeof val === 'object') {
+        const childHtml = renderJsonData(val, depth + 1);
+        return `<div class="subsection"><h3>${escapeHtml(key)}</h3>${childHtml}</div>`;
+      }
+      if (val === null || val === undefined) return '';
+      return `<div class="kv"><strong>${escapeHtml(key)}:</strong> ${escapeHtml(String(val))}</div>`;
+    }).join('\n');
+  }
+
+  return escapeHtml(String(data));
+}
+
+// ============================================================
 // DATA INJECTION
 // ============================================================
 
-/**
- * Inject actual JSON data into an HTML template.
- * Handles {{DATA}}, {{TABLE_ROWS}}, and auto-detects array rendering.
- */
 function injectDataIntoTemplate(template, jsonData) {
   let html = template;
 
-  // If template has {{TABLE_ROWS}}, generate table rows from array data
+  // If template has {{DATA}}, inject rendered data
+  if (html.includes('{{DATA}}')) {
+    const rendered = renderJsonData(jsonData);
+    html = html.replace(/\{\{DATA\}\}/g, rendered);
+  }
+
+  // If template has {{TABLE_ROWS}}, generate table rows
   if (html.includes('{{TABLE_ROWS}}') && Array.isArray(jsonData)) {
     const rows = jsonData.map(item => {
       if (typeof item !== 'object' || item === null) {
         return `<tr><td>${escapeHtml(String(item))}</td></tr>`;
       }
-      const cells = Object.values(item).map(val => {
-        if (val && typeof val === 'object') {
-          return `<td>${escapeHtml(JSON.stringify(val))}</td>`;
-        }
-        return `<td>${escapeHtml(String(val ?? ''))}</td>`;
-      }).join('');
+      const cells = Object.values(item)
+        .filter((_, i) => !isSystemField(Object.keys(item)[i]))
+        .map(val => {
+          if (val && typeof val === 'object') return `<td>${escapeHtml(JSON.stringify(val))}</td>`;
+          return `<td>${escapeHtml(String(val ?? ''))}</td>`;
+        }).join('');
       return `<tr>${cells}</tr>`;
     }).join('\n');
-
     html = html.replace(/\{\{TABLE_ROWS\}\}/g, rows);
 
-    // Also replace {{TABLE_HEADERS}} if present
     if (Array.isArray(jsonData) && jsonData.length > 0 && typeof jsonData[0] === 'object') {
-      const headers = Object.keys(jsonData[0]).map(k =>
-        `<th>${escapeHtml(k)}</th>`
-      ).join('');
+      const headers = Object.keys(jsonData[0])
+        .filter(k => !isSystemField(k))
+        .map(k => `<th>${escapeHtml(k)}</th>`)
+        .join('');
       html = html.replace(/\{\{TABLE_HEADERS\}\}/g, headers);
     }
   }
 
-  // If template has {{DATA}}, inject the full JSON as a formatted block
-  if (html.includes('{{DATA}}')) {
-    const formatted = formatJsonForDisplay(jsonData);
-    html = html.replace(/\{\{DATA\}\}/g, formatted);
+  // If no placeholder found, append rendered data
+  if (!html.includes('{{DATA}}') && !html.includes('{{TABLE_ROWS}}')) {
+    const rendered = renderJsonData(jsonData);
+    html = html.replace('</body>', `${rendered}</body>`);
   }
 
-  // If neither placeholder exists, append data at the end of body
-  if (!html.includes('{{TABLE_ROWS}}') && !html.includes('{{DATA}}')) {
-    const dataBlock = Array.isArray(jsonData)
-      ? generateFallbackTable(jsonData)
-      : `<pre style="font-family: monospace; white-space: pre-wrap;">${escapeHtml(JSON.stringify(jsonData, null, 2))}</pre>`;
-
-    html = html.replace('</body>', `${dataBlock}</body>`);
-  }
-
-  return html;
-}
-
-function formatJsonForDisplay(data) {
-  if (Array.isArray(data)) {
-    return generateFallbackTable(data);
-  }
-  if (typeof data === 'object' && data !== null) {
-    return Object.entries(data).map(([key, val]) =>
-      `<div style="margin:4px 0;"><strong>${escapeHtml(key)}:</strong> ${escapeHtml(String(val ?? ''))}</div>`
-    ).join('');
-  }
-  return escapeHtml(String(data));
-}
-
-function generateFallbackTable(items) {
-  if (items.length === 0) return '<p>No data</p>';
-
-  const firstItem = items[0];
-  if (typeof firstItem !== 'object' || firstItem === null) {
-    return `<ul>${items.map(i => `<li>${escapeHtml(String(i))}</li>`).join('')}</ul>`;
-  }
-
-  const keys = Object.keys(firstItem);
-  let html = '<table style="border-collapse:collapse;width:100%;font-size:12px;"><thead><tr>';
-  keys.forEach(k => { html += `<th style="background:#1e40af;color:white;padding:8px 12px;text-align:left;">${escapeHtml(k)}</th>`; });
-  html += '</tr></thead><tbody>';
-
-  items.forEach(item => {
-    html += '<tr>';
-    keys.forEach(k => {
-      const val = item[k];
-      const display = val === null ? 'null' : val === undefined ? '' : typeof val === 'object' ? JSON.stringify(val) : String(val);
-      html += `<td style="padding:6px 12px;border:1px solid #e5e7eb;">${escapeHtml(display)}</td>`;
-    });
-    html += '</tr>';
-  });
-
-  html += '</tbody></table>';
   return html;
 }
 
@@ -283,19 +403,24 @@ function getFallbackTemplate() {
   body { font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; color: #1f2937; background: #fff; }
   h1 { font-size: 22px; color: #111827; font-weight: 700; margin: 16px 0 6px; padding-bottom: 8px; border-bottom: 2px solid #2563eb; }
   h2 { font-size: 16px; color: #374151; font-weight: 700; margin: 12px 0 6px; padding-bottom: 4px; border-bottom: 1px solid #e5e7eb; }
+  h3 { font-size: 14px; color: #374151; font-weight: 700; margin: 10px 0 4px; }
   table { border-collapse: collapse; width: 100%; margin: 10px 0 16px; font-size: 12px; }
   th { background: #1e40af; color: white; padding: 8px 12px; text-align: left; font-weight: 600; }
   td { padding: 6px 12px; border: 1px solid #e5e7eb; }
   tr:nth-child(even) td { background: #f3f4f6; }
-  .json-block { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px; margin: 8px 0; font-family: monospace; font-size: 11px; white-space: pre-wrap; word-break: break-all; }
-  .kv { margin: 4px 0; }
+  .kv { margin: 4px 0; line-height: 1.6; }
   .kv strong { color: #1e40af; }
+  .section-block { margin: 12px 0; padding: 10px 0; border-bottom: 1px solid #f3f4f6; }
+  .section-block h3 { margin-bottom: 6px; }
+  .subsection { margin: 8px 0 8px 12px; }
   .report-title { font-size: 28px; color: #111827; margin-bottom: 4px; }
   .report-subtitle { color: #6b7280; font-size: 13px; margin-bottom: 20px; }
+  ul { padding-left: 20px; margin: 4px 0; }
+  li { margin: 2px 0; }
   @media print {
     body { padding: 0; }
-    h1, h2 { break-after: avoid; }
-    table, .json-block { break-inside: avoid; page-break-inside: avoid; }
+    h1, h2, h3 { break-after: avoid; }
+    table, .section-block { break-inside: avoid; page-break-inside: avoid; }
     tr { break-inside: avoid; page-break-inside: avoid; }
     p { orphans: 3; widows: 3; }
   }
@@ -314,7 +439,6 @@ function getFallbackTemplate() {
 // ============================================================
 
 async function jsonToPdf(jsonBuffer) {
-  // Parse JSON
   let jsonData;
   try {
     jsonData = JSON.parse(jsonBuffer.toString('utf-8'));
@@ -322,7 +446,6 @@ async function jsonToPdf(jsonBuffer) {
     throw new Error('Invalid JSON data');
   }
 
-  // Compute structural hash
   const hash = computeStructuralHash(jsonData);
 
   // Check cache
@@ -349,9 +472,7 @@ async function jsonToPdf(jsonBuffer) {
 
   // Validate HTML
   if (!html.toLowerCase().includes('<html')) {
-    html = getFallbackTemplate().replace('{{DATA}}',
-      Array.isArray(jsonData) ? generateFallbackTable(jsonData) : escapeHtml(JSON.stringify(jsonData, null, 2))
-    );
+    html = getFallbackTemplate().replace('{{DATA}}', renderJsonData(jsonData));
   }
 
   // Convert HTML → PDF via Gotenberg Chromium
@@ -371,7 +492,7 @@ async function jsonToPdf(jsonBuffer) {
     throw new Error(`Gotenberg Chromium failed [${response.status}]: ${err.substring(0, 500)}`);
   }
 
-  const pdfBuffer = await response.buffer();
+  const pdfBuffer = Buffer.from(await response.arrayBuffer());
   if (pdfBuffer.slice(0, 5).toString('ascii') !== '%PDF-') {
     throw new Error('Gotenberg returned non-PDF output');
   }
@@ -391,4 +512,4 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
-module.exports = { jsonToPdf, computeStructuralHash, extractAllKeys };
+module.exports = { jsonToPdf, analyzeStructure, isSystemField, renderJsonData };
