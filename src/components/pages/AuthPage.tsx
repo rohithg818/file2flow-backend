@@ -64,12 +64,17 @@ export const AuthPage: React.FC = () => {
   const handleGoogleClick = async () => {
     setFormError(null);
     setLoading(true);
-    const success = await handleGoogleLogin();
-    setLoading(false);
-    if (success) {
-      setActivePage('convert');
-    } else {
-      setFormError('Google Sign-In failed. Please try again.');
+    try {
+      const success = await handleGoogleLogin();
+      if (success) {
+        setActivePage('convert');
+      } else {
+        setFormError('Google Sign-In failed. Please try again.');
+      }
+    } catch (err: any) {
+      setFormError(err?.message || 'Google Sign-In failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 

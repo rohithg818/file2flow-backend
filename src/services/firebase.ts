@@ -220,21 +220,35 @@ export async function checkEmailVerified(): Promise<boolean> {
 
 export async function loginWithGoogle(): Promise<UserProfile> {
   if (auth && isFirebaseConfigured) {
-    const provider = new GoogleAuthProvider();
-    const cred = await signInWithPopup(auth, provider);
-    const user = cred.user;
-    let profile = await getUserProfile(user.uid);
-    if (!profile) {
-      profile = createDefaultUserProfile(user.uid, user.email || '');
-      profile.displayName = user.displayName || 'Google User';
-      profile.photoURL = user.photoURL || undefined;
-      profile.authProviders = ['google.com'];
+    try {
+      const provider = new GoogleAuthProvider();
+      const cred = await signInWithPopup(auth, provider);
+      const user = cred.user;
+      let profile = await getUserProfile(user.uid);
+      if (!profile) {
+        profile = createDefaultUserProfile(user.uid, user.email || '');
+        profile.displayName = user.displayName || 'Google User';
+        profile.photoURL = user.photoURL || undefined;
+        profile.authProviders = ['google.com'];
+      }
+      profile.lastLoginAt = new Date().toISOString();
+      profile.lastActivityAt = new Date().toISOString();
+      profile.emailVerified = user.emailVerified;
+      await saveUserProfile(profile);
+      return profile;
+    } catch (err: any) {
+      console.error('Google sign-in error:', err.code, err.message);
+      if (err.code === 'auth/popup-blocked-by-user') {
+        throw new Error('Popup was blocked. Please allow popups for this site.');
+      }
+      if (err.code === 'auth/popup-closed-by-user') {
+        throw new Error('Sign-in cancelled. Please try again.');
+      }
+      if (err.code === 'auth/unauthorized-domain') {
+        throw new Error('This domain is not authorized for Google sign-in. Please check Firebase console settings.');
+      }
+      throw new Error(`Google sign-in failed: ${err.message || 'Unknown error'}`);
     }
-    profile.lastLoginAt = new Date().toISOString();
-    profile.lastActivityAt = new Date().toISOString();
-    profile.emailVerified = user.emailVerified;
-    await saveUserProfile(profile);
-    return profile;
   }
   const googleUser = createDefaultUserProfile(`google_usr_${Date.now()}`, 'user.workspace@gmail.com', 'Google Account User');
   googleUser.photoURL = 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80';
