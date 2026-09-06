@@ -251,7 +251,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Gate dashboard navigation for free users
   const handleSetActivePage = useCallback((page: ActivePage) => {
     if (page === 'dashboard' && user?.plan === 'free') {
-      setUpgradeModalOpen(true);
+      setActivePage('pricing');
       return;
     }
     setActivePage(page);

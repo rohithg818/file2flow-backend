@@ -54,8 +54,8 @@ export const UpgradeModal: React.FC = () => {
 
   const currentPlan = PRICING_PLANS.find((p) => p.id === selectedPlanId) || PRICING_PLANS[1];
   const price = billingCycle === 'yearly'
-    ? (currentPlan.priceYearly / 12).toFixed(0)
-    : currentPlan.priceMonthly;
+    ? ((currentPlan.priceYearly / 12) / 100).toFixed(2)
+    : (currentPlan.priceMonthly / 100).toFixed(2);
 
   const handleCheckout = async () => {
     if (!user) return;
