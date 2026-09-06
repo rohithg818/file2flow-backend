@@ -38,7 +38,16 @@ const CONVERSION_MAP = {
   'md:pdf':     { engine: 'markdown-to-pdf' },
   'html:pdf':   { engine: 'html-to-pdf' },
   'csv:pdf':    { engine: 'csv-to-html-table' },
-  'image:pdf':  { engine: 'gotenberg-libreoffice' },
+  'image:pdf':  { engine: 'image-to-pdf' },
+  'png:pdf':    { engine: 'image-to-pdf' },
+  'jpg:pdf':    { engine: 'image-to-pdf' },
+  'jpeg:pdf':   { engine: 'image-to-pdf' },
+  'webp:pdf':   { engine: 'image-to-pdf' },
+  'gif:pdf':    { engine: 'image-to-pdf' },
+  'svg:pdf':    { engine: 'image-to-pdf' },
+  'bmp:pdf':    { engine: 'image-to-pdf' },
+  'tiff:pdf':   { engine: 'image-to-pdf' },
+  'tif:pdf':    { engine: 'image-to-pdf' },
   'json:pdf':   { engine: 'json-to-pdf' },
   'txt:pdf':    { engine: 'text-to-pdf' },
 
@@ -92,6 +101,20 @@ const CONVERSION_MAP = {
   // === IMAGE ===
   'image:html': { engine: 'image-to-html' },
   'image:txt':  { engine: 'image-to-html' },
+  'png:html':   { engine: 'image-to-html' },
+  'png:txt':    { engine: 'image-to-html' },
+  'jpg:html':   { engine: 'image-to-html' },
+  'jpg:txt':    { engine: 'image-to-html' },
+  'jpeg:html':  { engine: 'image-to-html' },
+  'jpeg:txt':   { engine: 'image-to-html' },
+  'webp:html':  { engine: 'image-to-html' },
+  'webp:txt':   { engine: 'image-to-html' },
+  'gif:html':   { engine: 'image-to-html' },
+  'gif:txt':    { engine: 'image-to-html' },
+  'svg:html':   { engine: 'image-to-html' },
+  'svg:txt':    { engine: 'image-to-html' },
+  'bmp:html':   { engine: 'image-to-html' },
+  'bmp:txt':    { engine: 'image-to-html' },
 };
 
 // Extension → MIME type (authoritative source for Gotenberg)
@@ -208,6 +231,34 @@ async function gotenbergChromium(htmlBuffer, filename) {
 
 async function htmlToPdf(htmlBuffer, filename) {
   return gotenbergChromium(htmlBuffer, filename);
+}
+
+// ============================================================
+// ENGINE: Image → PDF (via pdf-lib)
+// ============================================================
+
+async function imageToPdf(imageBuffer, filename) {
+  const ext = filename.split('.').pop().toLowerCase();
+  let image;
+  const pdfDoc = await PDFDocument.create();
+
+  if (ext === 'png') {
+    image = await pdfDoc.embedPng(imageBuffer);
+  } else if (['jpg', 'jpeg'].includes(ext)) {
+    image = await pdfDoc.embedJpg(imageBuffer);
+  } else {
+    // For other formats (webp, gif, bmp, tiff), wrap in HTML and use Gotenberg Chromium
+    const base64 = imageBuffer.toString('base64');
+    const mimeExt = { webp: 'webp', gif: 'gif', svg: 'svg+xml', bmp: 'bmp', tiff: 'tiff', tif: 'tiff' };
+    const mime = `image/${mimeExt[ext] || ext}`;
+    const html = `<!DOCTYPE html><html><head><style>body{margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#fff}img{max-width:100%;max-height:100vh}</style></head><body><img src="data:${mime};base64,${base64}" /></body></html>`;
+    return gotenbergChromium(Buffer.from(html, 'utf-8'), 'image.html');
+  }
+
+  const page = pdfDoc.addPage([image.width, image.height]);
+  page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
+
+  return Buffer.from(await pdfDoc.save());
 }
 
 // ============================================================
@@ -823,6 +874,9 @@ async function convertFile(fileBuffer, sourceFormat, targetFormat, filename, mim
       break;
     case 'pptx-to-pdf':
       resultBuffer = await pptxToPdf(fileBuffer);
+      break;
+    case 'image-to-pdf':
+      resultBuffer = await imageToPdf(fileBuffer, filename);
       break;
     case 'json-to-pdf':
       resultBuffer = await jsonToPdf(fileBuffer);
