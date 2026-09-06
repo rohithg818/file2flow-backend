@@ -225,30 +225,12 @@ async function addPassword(pdfBuffer, userPassword, ownerPassword) {
  * Remove password from a PDF (if you know the password).
  */
 async function removePassword(pdfBuffer, password) {
-  const form = new FormData();
-  form.append('files', pdfBuffer, {
-    filename: 'input.pdf',
-    contentType: 'application/pdf',
-  });
-  form.append('password', password);
-
-  const response = await fetch(`${GOTENBERG_URL}/forms/pdfengines/decrypt`, {
-    method: 'POST',
-    body: form,
-    headers: form.getHeaders(),
-    signal: AbortSignal.timeout(60_000),
+  const pdfDoc = await PDFDocument.load(pdfBuffer, {
+    ignoreEncryption: true,
   });
 
-  if (!response.ok) {
-    const err = await response.text().catch(() => 'No body');
-    throw new Error(`Failed to unlock PDF: ${err.substring(0, 300)}`);
-  }
-
-  const result = Buffer.from(await response.arrayBuffer());
-  if (result.slice(0, 5).toString('ascii') !== '%PDF-') {
-    throw new Error('Unlock produced non-PDF output');
-  }
-  return result;
+  const bytes = await pdfDoc.save();
+  return Buffer.from(bytes);
 }
 
 // ============================================================
