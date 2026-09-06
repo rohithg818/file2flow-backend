@@ -92,7 +92,7 @@ export const PricingPage: React.FC = () => {
           },
         });
       } else {
-        // Fallback: create checkout via backend and redirect
+        // Fallback: get client token from backend and initialize Paddle.js
         const res = await fetch(`${API_URL}/api/webhooks/paddle/create-checkout`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -100,8 +100,21 @@ export const PricingPage: React.FC = () => {
         });
 
         const data = await res.json();
-        if (data.url) {
-          window.location.href = data.url;
+        if (data.clientToken) {
+          // Initialize Paddle.js with the fresh client token and open checkout
+          const freshPaddle = await initializePaddle({
+            token: data.clientToken,
+            environment: (import.meta.env.VITE_PADDLE_ENVIRONMENT || 'sandbox') as 'sandbox' | 'production',
+          });
+          freshPaddle.Checkout.open({
+            items: [{ priceId, quantity: 1 }],
+            customer: { email: user.email },
+            customData: { userId: user.uid, email: user.email },
+            settings: {
+              successUrl: `${window.location.origin}/pricing?success=true`,
+              cancelUrl: `${window.location.origin}/pricing?canceled=true`,
+            },
+          });
         } else {
           throw new Error(data.error || 'Failed to create checkout');
         }

@@ -20,6 +20,8 @@ const { jsonToPdf } = require('./json-to-pdf');
 const { enforcePlanLimits, incrementConversionCount } = require('./middleware/plan-enforcement');
 const { apiLimiter, authLimiter, engineLimiter } = require('./middleware/rateLimit');
 const { errorHandler, requestLogger, logger } = require('./middleware/errorHandler');
+const { retryFetch } = require('./retryFetch');
+const { maybeWatermark } = require('./watermark');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -34,7 +36,7 @@ app.use(cors({
 app.use(requestLogger);
 
 // Paddle webhook needs raw body (BEFORE JSON parser)
-app.use('/api/webhooks/paddle', express.raw({ type: 'application/json' }));
+app.use('/api/webhooks/paddle/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '1mb' }));
 
 // Rate limiting
@@ -91,12 +93,13 @@ app.post('/api/convert', upload.single('file'), enforcePlanLimits, async (req, r
     );
 
     const filename = req.file.originalname.replace(/\.[^/.]+$/, '.pdf');
+    const output = await maybeWatermark(pdfBuffer, req.userPlan);
 
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="${filename}"`,
     });
-    res.send(pdfBuffer);
+    res.send(output);
     if (req.user?.uid) incrementConversionCount(req.user.uid);
   } catch (err) {
     logger.error('Gotenberg conversion failed', { error: err.message });
@@ -120,12 +123,13 @@ app.post('/api/convert/json', upload.single('file'), enforcePlanLimits, async (r
 
     const pdfBuffer = await jsonToPdf(req.file.buffer);
     const filename = req.file.originalname.replace(/\.json$/i, '') + '.pdf';
+    const output = await maybeWatermark(pdfBuffer, req.userPlan);
 
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="${filename}"`,
     });
-    res.send(pdfBuffer);
+    res.send(output);
     if (req.user?.uid) incrementConversionCount(req.user.uid);
   } catch (err) {
     logger.error('JSON → PDF conversion failed', { error: err.message });
@@ -172,12 +176,16 @@ app.post('/api/convert/file', upload.single('file'), enforcePlanLimits, async (r
       req.file.mimetype
     );
 
+    const outputBuffer = result.contentType === 'application/pdf'
+      ? await maybeWatermark(result.buffer, req.userPlan)
+      : result.buffer;
+
     res.set({
       'Content-Type': result.contentType,
       'Content-Disposition': `attachment; filename="${result.filename}"`,
       'X-Lossy-Conversion': result.lossy ? 'true' : 'false',
     });
-    res.send(result.buffer);
+    res.send(outputBuffer);
     if (req.user?.uid) incrementConversionCount(req.user.uid);
   } catch (err) {
     logger.error('Hub conversion failed', { error: err.message });
@@ -191,7 +199,7 @@ app.post('/api/convert/file', upload.single('file'), enforcePlanLimits, async (r
 
 app.get('/api/engine/health', async (req, res) => {
   try {
-    const response = await fetch(`${ENGINE_URL}/api/engine/health`);
+    const response = await retryFetch(`${ENGINE_URL}/api/engine/health`, { timeout: 30_000 }, 1);
     const data = await response.json();
     res.json(data);
   } catch (err) {

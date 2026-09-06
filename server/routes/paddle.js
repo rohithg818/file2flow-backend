@@ -89,6 +89,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
       case 'subscription.activated': {
         const subscription = data;
         const customerId = subscription.customer_id;
+        const customerEmail = subscription.customer?.email || subscription.custom_data?.email || null;
         const priceId = subscription.items?.[0]?.price?.id;
         const planTier = getPlanByPriceId(priceId);
 
@@ -97,10 +98,9 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
           break;
         }
 
-        // Find user by paddle_customer_id or email
-        const user = await findUserByPaddleCustomer(supabase, customerId);
+        const user = await findUserByPaddleCustomer(supabase, customerId, customerEmail);
         if (!user) {
-          console.warn('Paddle webhook: no user found for customer:', customerId);
+          console.warn('Paddle webhook: no user found for customer:', customerId, customerEmail);
           break;
         }
 
@@ -110,8 +110,13 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
           .update({
             plan: planTier,
             plan_status: 'active',
+            subscription_status: 'active',
+            subscription_plan: planTier,
             paddle_subscription_id: subscription.id,
+            paddle_customer_id: customerId,
             conversions_limit_per_month: plan.limits.conversionsPerMonth,
+            storage_limit: plan.limits.storageGB * 1024 * 1024,
+            history_retention_days: plan.limits.historyRetentionDays,
             last_activity_at: new Date().toISOString(),
           })
           .eq('uid', user.uid);
@@ -124,6 +129,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
       case 'subscription.updated': {
         const subscription = data;
         const customerId = subscription.customer_id;
+        const customerEmail = subscription.customer?.email || subscription.custom_data?.email || null;
         const priceId = subscription.items?.[0]?.price?.id;
         const planTier = getPlanByPriceId(priceId);
 
@@ -132,15 +138,13 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
           break;
         }
 
-        const user = await findUserByPaddleCustomer(supabase, customerId);
+        const user = await findUserByPaddleCustomer(supabase, customerId, customerEmail);
         if (!user) {
-          console.warn('Paddle webhook: no user found for customer:', customerId);
+          console.warn('Paddle webhook: no user found for update:', customerId, customerEmail);
           break;
         }
 
         const plan = PLANS[planTier];
-
-        // Check if subscription is still active
         const status = subscription.status;
         const isActive = status === 'active' || status === 'trialing';
 
@@ -149,7 +153,11 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
           .update({
             plan: isActive ? planTier : 'free',
             plan_status: isActive ? 'active' : 'canceled',
+            subscription_status: isActive ? 'active' : 'canceled',
+            subscription_plan: isActive ? planTier : null,
             conversions_limit_per_month: isActive ? plan.limits.conversionsPerMonth : 10,
+            storage_limit: isActive ? plan.limits.storageGB * 1024 * 1024 : 0,
+            history_retention_days: isActive ? plan.limits.historyRetentionDays : 0,
             last_activity_at: new Date().toISOString(),
           })
           .eq('uid', user.uid);
@@ -163,10 +171,11 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
       case 'subscription.deactivated': {
         const subscription = data;
         const customerId = subscription.customer_id;
+        const customerEmail = subscription.customer?.email || subscription.custom_data?.email || null;
 
-        const user = await findUserByPaddleCustomer(supabase, customerId);
+        const user = await findUserByPaddleCustomer(supabase, customerId, customerEmail);
         if (!user) {
-          console.warn('Paddle webhook: no user found for customer:', customerId);
+          console.warn('Paddle webhook: no user found for canceled sub:', customerId, customerEmail);
           break;
         }
 
@@ -175,8 +184,12 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
           .update({
             plan: 'free',
             plan_status: 'canceled',
+            subscription_status: 'canceled',
+            subscription_plan: null,
             paddle_subscription_id: null,
             conversions_limit_per_month: 10,
+            storage_limit: 0,
+            history_retention_days: 0,
             last_activity_at: new Date().toISOString(),
           })
           .eq('uid', user.uid);
@@ -216,27 +229,54 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 
 router.post('/create-checkout', async (req, res) => {
   try {
-    if (!paddle) {
-      return res.status(503).json({ error: 'Paddle not configured' });
-    }
-
     const { priceId, email, userId } = req.body;
     if (!priceId || !email) {
       return res.status(400).json({ error: 'priceId and email are required' });
     }
 
-    // Create a Paddle checkout
-    const checkout = await paddle.checkouts.create({
-      items: [{ priceId, quantity: 1 }],
-      customer: { email },
-      customData: { userId, email },
-      settings: {
-        successUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/pricing?success=true`,
-        cancelUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/pricing?canceled=true`,
-      },
+    // Ensure customer exists in Paddle
+    let customerId = null;
+    try {
+      const existing = await paddle.customers.list({ email: [email] });
+      if (existing && existing.data && existing.data.length > 0) {
+        customerId = existing.data[0].id;
+      } else {
+        const newCustomer = await paddle.customers.create({ email, name: userId || email });
+        customerId = newCustomer.id;
+      }
+    } catch (err) {
+      // Customer may already exist with conflicting data - extract ID from error
+      if (err.detail && err.detail.includes('conflicts with customer of id')) {
+        const match = err.detail.match(/id (ctm_[a-z0-9]+)/);
+        if (match) customerId = match[1];
+      } else {
+        console.warn('Paddle customer lookup/create failed:', err.message);
+      }
+    }
+
+    // Create a one-time client token for this checkout session
+    const clientToken = await paddle.clientTokens.create({
+      name: `Checkout for ${email}`,
+      description: `One-time client token for ${email} checkout`,
     });
 
-    res.json({ checkoutId: checkout.id, url: checkout.url });
+    // Store paddle_customer_id on the user if we found/created one
+    if (customerId && userId) {
+      const { getSupabase } = require('../middleware/supabase');
+      const supabase = getSupabase();
+      if (supabase) {
+        await supabase
+          .from('users')
+          .update({ paddle_customer_id: customerId })
+          .eq('uid', userId);
+      }
+    }
+
+    res.json({
+      clientToken: clientToken.token,
+      customerId,
+      priceId,
+    });
   } catch (err) {
     console.error('Paddle checkout creation failed:', err.message);
     res.status(500).json({ error: err.message });
@@ -247,7 +287,7 @@ router.post('/create-checkout', async (req, res) => {
 // HELPERS
 // ============================================================
 
-async function findUserByPaddleCustomer(supabase, paddleCustomerId) {
+async function findUserByPaddleCustomer(supabase, paddleCustomerId, email) {
   // Try by paddle_customer_id first
   let { data } = await supabase
     .from('users')
@@ -257,8 +297,24 @@ async function findUserByPaddleCustomer(supabase, paddleCustomerId) {
 
   if (data) return data;
 
-  // Fallback: try to find by checking all users (for initial setup)
-  // In production, Paddle webhooks include customer email — use that
+  // Fallback: find by email (Paddle includes customer email in webhook data)
+  if (email) {
+    let { data: byEmail } = await supabase
+      .from('users')
+      .select('uid')
+      .eq('email', email)
+      .single();
+
+    if (byEmail) {
+      // Link the paddle_customer_id for future lookups
+      await supabase
+        .from('users')
+        .update({ paddle_customer_id: paddleCustomerId })
+        .eq('uid', byEmail.uid);
+      return byEmail;
+    }
+  }
+
   return null;
 }
 

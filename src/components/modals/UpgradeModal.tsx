@@ -89,8 +89,20 @@ export const UpgradeModal: React.FC = () => {
           body: JSON.stringify({ priceId, email: user.email, userId: user.uid }),
         });
         const data = await res.json();
-        if (data.url) {
-          window.location.href = data.url;
+        if (data.clientToken) {
+          const freshPaddle = await initializePaddle({
+            token: data.clientToken,
+            environment: (import.meta.env.VITE_PADDLE_ENVIRONMENT || 'sandbox') as 'sandbox' | 'production',
+          });
+          freshPaddle.Checkout.open({
+            items: [{ priceId, quantity: 1 }],
+            customer: { email: user.email },
+            customData: { userId: user.uid, email: user.email },
+            settings: {
+              successUrl: `${window.location.origin}/pricing?success=true`,
+              cancelUrl: `${window.location.origin}/pricing?canceled=true`,
+            },
+          });
         } else {
           throw new Error(data.error || 'Checkout failed');
         }

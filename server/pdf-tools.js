@@ -1,6 +1,7 @@
 const { PDFDocument, rgb, degrees } = require('pdf-lib');
 const fetch = require('node-fetch').default || require('node-fetch');
 const FormData = require('form-data');
+const { retryFetch } = require('./retryFetch');
 
 const GOTENBERG_URL = process.env.GOTENBERG_URL || 'https://gotenberg-31r8.onrender.com';
 
@@ -33,11 +34,11 @@ async function compressPdf(pdfBuffer, level = 'medium') {
         form.append('collapseDuplicateStreams', 'true');
       }
 
-      const response = await fetch(`${GOTENBERG_URL}/forms/pdfengines/optimize`, {
+      const response = await retryFetch(`${GOTENBERG_URL}/forms/pdfengines/optimize`, {
         method: 'POST',
         body: form,
         headers: form.getHeaders(),
-        signal: AbortSignal.timeout(120_000),
+        timeout: 120_000,
       });
 
       if (response.ok) {
@@ -212,11 +213,11 @@ async function addPassword(pdfBuffer, userPassword, ownerPassword) {
   form.append('userPassword', userPassword);
   if (ownerPassword) form.append('ownerPassword', ownerPassword);
 
-  const response = await fetch(`${GOTENBERG_URL}/forms/pdfengines/encrypt`, {
+  const response = await retryFetch(`${GOTENBERG_URL}/forms/pdfengines/encrypt`, {
     method: 'POST',
     body: form,
     headers: form.getHeaders(),
-    signal: AbortSignal.timeout(60_000),
+    timeout: 60_000,
   });
 
   if (!response.ok) {

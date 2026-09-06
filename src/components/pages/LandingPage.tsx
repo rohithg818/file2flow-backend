@@ -2,6 +2,8 @@ import React from 'react';
 import {
   ArrowRight, FileText, Image as ImageIcon, Layers, Lock,
   Upload, Settings, Download, FileJson, FileType, Sparkles,
+  Palette, BarChart3, FileSpreadsheet, Wand2, Zap, Clock,
+  Crown, ShieldCheck, Ban,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { DocStreamHero } from '../ui/doc-stream-hero';
@@ -154,18 +156,129 @@ export const LandingPage: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { icon: '🎨', title: 'Auto Template', desc: 'AI detects your document type and picks the perfect PDF template — report, resume, invoice, or minimal.' },
-              { icon: '📊', title: 'Quality Scoring', desc: 'Get instant readability and quality scores with actionable suggestions before converting.' },
-              { icon: '📝', title: 'Smart Summary', desc: 'Auto-generate executive summaries, table of contents, and professional headers for any document.' },
-              { icon: '✨', title: 'Content Enhance', desc: 'AI suggests improvements to formatting, structure, and readability tailored to your file type.' },
+              { icon: Palette, color: '#DB2777', bg: '#FDF2F8', title: 'Auto Template', desc: 'AI detects your document type and picks the perfect PDF template — report, resume, invoice, or minimal.' },
+              { icon: BarChart3, color: '#2563EB', bg: '#EFF6FF', title: 'Quality Scoring', desc: 'Get instant readability and quality scores with actionable suggestions before converting.' },
+              { icon: FileSpreadsheet, color: '#059669', bg: '#F0FDF4', title: 'Smart Summary', desc: 'Auto-generate executive summaries, table of contents, and professional headers for any document.' },
+              { icon: Wand2, color: '#7C3AED', bg: '#F5F3FF', title: 'Content Enhance', desc: 'AI suggests improvements to formatting, structure, and readability tailored to your file type.' },
             ].map((feat, i) => (
               <div key={i} className="p-6 rounded-2xl transition-all hover:shadow-md"
                 style={{ background: '#FAFBFC', border: '1px solid #E2E8F0' }}>
-                <span className="text-2xl">{feat.icon}</span>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: feat.bg }}>
+                  <feat.icon className="w-5 h-5" style={{ color: feat.color }} />
+                </div>
                 <h3 className="text-base font-bold mt-3 mb-2" style={{ color: '#0F172A' }}>{feat.title}</h3>
                 <p className="text-sm leading-relaxed" style={{ color: '#64748B' }}>{feat.desc}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* WHY UPGRADE — USP */}
+      <section className="py-20 lg:py-28" style={{ background: 'linear-gradient(180deg, #F0F7FF 0%, #FFFFFF 100%)' }}>
+        <div className="max-w-7xl mx-auto px-8">
+          <div className="text-center mb-14">
+            <span className="text-sm font-semibold uppercase tracking-wider px-4 py-1.5 rounded-xl inline-block mb-3"
+              style={{ background: '#FEF3C7', color: '#D97706' }}>
+              <Crown className="w-3.5 h-3.5 inline mr-1.5 -mt-0.5" />Why Upgrade
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-bold font-display tracking-tight" style={{ color: '#0F172A' }}>
+              Free gets you started. Pro gets you further.
+            </h2>
+            <p className="text-base mt-3 max-w-xl mx-auto" style={{ color: '#64748B' }}>
+              Free outputs include a File2Flow watermark. Upgrade to remove it and unlock the full toolkit.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[
+              {
+                icon: Ban,
+                color: '#DC2626',
+                bg: '#FEF2F2',
+                border: '#FECACA',
+                title: 'Watermark-free output',
+                desc: 'Free plans include a diagonal "File2Flow — Upgrade to remove" watermark on every PDF. Starter and Business plans remove it entirely.',
+                badge: 'Popular',
+              },
+              {
+                icon: FileJson,
+                color: '#D97706',
+                bg: '#FFFBEB',
+                border: '#FDE68A',
+                title: 'JSON → PDF reports',
+                desc: 'Paste or upload JSON data and get a professionally formatted PDF — tables, charts, headings, and smart summaries generated instantly.',
+                badge: 'AI-Powered',
+              },
+              {
+                icon: Zap,
+                color: '#2563EB',
+                bg: '#EFF6FF',
+                border: '#BFDBFE',
+                title: 'Higher file-size limits',
+                desc: 'Free users are capped at 10 MB per file. Starter unlocks 50 MB, and Business goes up to 200 MB per upload.',
+                badge: null,
+              },
+              {
+                icon: Clock,
+                color: '#059669',
+                bg: '#F0FDF4',
+                border: '#BBF7D0',
+                title: 'Longer file retention',
+                desc: 'Free output expires in 1 hour. Starter keeps files for 30 days. Business stores them permanently.',
+                badge: null,
+              },
+              {
+                icon: Layers,
+                color: '#7C3AED',
+                bg: '#F5F3FF',
+                border: '#DDD6FE',
+                title: 'Unlimited conversions',
+                desc: 'Free accounts are limited to 10 conversions per month. Starter removes the cap for everyday use.',
+                badge: null,
+              },
+              {
+                icon: ShieldCheck,
+                color: '#D97706',
+                bg: '#FFFBEB',
+                border: '#FDE68A',
+                title: 'Priority support',
+                desc: 'Paid plans include direct email support with faster response times and early access to new features.',
+                badge: null,
+              },
+              {
+                icon: Crown,
+                color: '#DB2777',
+                bg: '#FDF2F8',
+                border: '#FBCFE8',
+                title: 'Batch & advanced tools',
+                desc: 'Merge, split, compress, and protect PDFs at full quality without processing caps.',
+                badge: 'New',
+              },
+            ].map((feat, i) => (
+              <div key={i} className="relative p-7 rounded-2xl transition-all hover:shadow-lg"
+                style={{ background: '#FFFFFF', border: `1.5px solid ${feat.border}` }}>
+                {feat.badge && (
+                  <span className="absolute -top-3 right-5 px-3 py-1 rounded-full text-xs font-bold text-white"
+                    style={{ background: feat.color }}>
+                    {feat.badge}
+                  </span>
+                )}
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{ background: feat.bg }}>
+                  <feat.icon className="w-6 h-6" style={{ color: feat.color }} />
+                </div>
+                <h3 className="text-base font-bold mb-2" style={{ color: '#0F172A' }}>{feat.title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: '#64748B' }}>{feat.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-12 text-center">
+            <button onClick={() => setActivePage('pricing')}
+              className="px-8 py-3.5 rounded-full font-semibold text-white transition-all hover:brightness-110 cursor-pointer"
+              style={{ background: 'linear-gradient(135deg, #D97706, #F59E0B)', boxShadow: '0 4px 14px rgba(217,119,6,0.35)' }}>
+              Compare plans &amp; pricing
+            </button>
           </div>
         </div>
       </section>
@@ -180,7 +293,7 @@ export const LandingPage: React.FC = () => {
             Ready to convert your files?
           </h2>
           <p className="text-lg max-w-lg mx-auto" style={{ color: '#64748B' }}>
-            Try File2Flow today. Free accounts include 10 conversions every month — with AI-powered formatting on every one.
+            Try File2Flow today. Free accounts include 10 conversions every month — with AI-powered formatting on every one. Upgrade to remove watermarks and unlock unlimited use.
           </p>
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
             <button onClick={() => setActivePage('convert')}

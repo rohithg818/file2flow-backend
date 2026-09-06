@@ -22,6 +22,32 @@ interface ToolConfig {
   }>;
 }
 
+const ACCEPT_BY_FORMAT: Record<string, string> = {
+  pdf: '.pdf',
+  docx: '.docx,.doc',
+  xlsx: '.xlsx,.xls',
+  pptx: '.pptx,.ppt',
+  html: '.html,.htm',
+  csv: '.csv',
+  md: '.md',
+  txt: '.txt',
+  json: '.json',
+  image: '.jpg,.jpeg,.png,.gif,.webp,.bmp',
+};
+
+const ALL_CONVERT_ACCEPT = '.pdf,.docx,.xlsx,.pptx,.html,.csv,.json,.odt,.ods,.odp,.rtf,.txt,.md,.jpg,.jpeg,.png,.gif,.webp';
+
+const ALL_CONVERT_TARGETS = [
+  { value: 'pdf', label: 'PDF' },
+  { value: 'docx', label: 'DOCX (Word)' },
+  { value: 'xlsx', label: 'XLSX (Excel)' },
+  { value: 'html', label: 'HTML' },
+  { value: 'txt', label: 'TXT (Plain text)' },
+  { value: 'md', label: 'Markdown' },
+  { value: 'csv', label: 'CSV' },
+  { value: 'pptx', label: 'PPTX (PowerPoint)' },
+];
+
 const TOOLS: Record<string, ToolConfig> = {
   'tools-pdf-compress': {
     id: 'compress',
@@ -117,7 +143,7 @@ const TOOLS: Record<string, ToolConfig> = {
     title: 'Convert to/from PDF',
     description: 'Convert any document format to PDF or vice versa',
     color: '#2563eb',
-    accept: '.pdf,.docx,.xlsx,.pptx,.html,.csv,.json,.odt,.ods,.odp,.rtf',
+    accept: ALL_CONVERT_ACCEPT,
     endpoint: '/api/convert/file',
     fields: [
       {
@@ -125,12 +151,7 @@ const TOOLS: Record<string, ToolConfig> = {
         label: 'Convert to',
         type: 'select',
         defaultValue: 'pdf',
-        options: [
-          { value: 'pdf', label: 'PDF' },
-          { value: 'docx', label: 'DOCX (Word)' },
-          { value: 'xlsx', label: 'XLSX (Excel)' },
-          { value: 'html', label: 'HTML' },
-        ],
+        options: ALL_CONVERT_TARGETS,
       },
     ],
   },
@@ -147,14 +168,40 @@ const TOOLS: Record<string, ToolConfig> = {
 export function ToolPage() {
   const { activePage, setActivePage } = useApp();
   const [files, setFiles] = useState<File[]>([]);
-  const [fields, setFields] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<'idle' | 'processing' | 'done' | 'error'>('idle');
   const [result, setResult] = useState<{ blob: Blob; filename: string } | null>(null);
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const config = TOOLS[activePage];
+  const pageKey = activePage.includes('--') ? activePage.split('--')[0] : activePage;
+  const convertPreset = (() => {
+    if (!activePage.includes('--')) return null;
+    const suffix = activePage.split('--')[1];
+    if (!suffix) return null;
+    const parts = suffix.split('-to-');
+    if (parts.length === 2) return { from: parts[0], to: parts[1] };
+    return null;
+  })();
+
+  const [fields, setFields] = useState<Record<string, string>>(() => {
+    const cfg = TOOLS[pageKey];
+    const initial: Record<string, string> = {};
+    cfg?.fields?.forEach(f => {
+      if (convertPreset?.to && f.name === 'targetFormat') {
+        initial[f.name] = convertPreset.to;
+      } else if (f.defaultValue) {
+        initial[f.name] = f.defaultValue;
+      }
+    });
+    return initial;
+  });
+
+  const config = TOOLS[pageKey];
   if (!config) return null;
+
+  const acceptFilter = convertPreset?.from
+    ? ACCEPT_BY_FORMAT[convertPreset.from] || config.accept
+    : config.accept;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || []);
@@ -196,7 +243,8 @@ export function ToolPage() {
       const blob = await response.blob();
       const disposition = response.headers.get('Content-Disposition');
       const filenameMatch = disposition?.match(/filename="(.+)"/);
-      const filename = filenameMatch?.[1] || files[0].name.replace(/\.[^/.]+$/, '') + '.pdf';
+      const targetFmt = fields.targetFormat || 'pdf';
+      const filename = filenameMatch?.[1] || files[0].name.replace(/\.[^/.]+$/, '') + '.' + targetFmt;
 
       setResult({ blob, filename });
       setStatus('done');
@@ -248,7 +296,7 @@ export function ToolPage() {
         <input
           ref={fileInputRef}
           type="file"
-          accept={config.accept}
+          accept={acceptFilter}
           multiple={config.multiple}
           onChange={handleFileChange}
           className="hidden"
@@ -270,7 +318,10 @@ export function ToolPage() {
               Click to upload or drag and drop
             </p>
             <p className="text-sm mt-1" style={{ color: '#64748B' }}>
-              {config.accept.replace(/\./g, '').toUpperCase().replace(/,/g, ', ')}
+              {convertPreset?.from
+                ? `${convertPreset.from.toUpperCase()} files`
+                : config.accept.replace(/\./g, '').toUpperCase().replace(/,/g, ', ')
+              }
             </p>
           </div>
         )}

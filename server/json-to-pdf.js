@@ -2,9 +2,12 @@ const crypto = require('crypto');
 const fetch = require('node-fetch').default || require('node-fetch');
 const FormData = require('form-data');
 const { getSupabase } = require('./middleware/supabase');
+const { retryFetch } = require('./retryFetch');
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
+const MISTRAL_API_URL = 'https://api.mistral.ai/v1/chat/completions';
 const GOTENBERG_URL = process.env.GOTENBERG_URL || 'https://gotenberg-31r8.onrender.com';
 
 // ============================================================
@@ -348,7 +351,11 @@ function renderAllBlocks(blocks) {
 // ============================================================
 
 async function groqTitleAndIntro(classified) {
-  if (!GROQ_API_KEY) {
+  const apiKey = MISTRAL_API_KEY || GROQ_API_KEY;
+  const apiUrl = MISTRAL_API_KEY ? MISTRAL_API_URL : GROQ_API_URL;
+  const model = MISTRAL_API_KEY ? 'mistral-small-latest' : 'openai/gpt-oss-120b';
+
+  if (!apiKey) {
     return { title: classified.title, intro: '' };
   }
 
@@ -362,14 +369,14 @@ async function groqTitleAndIntro(classified) {
   })));
 
   try {
-    const response = await fetch(GROQ_API_URL, {
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${GROQ_API_KEY}`,
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model,
         messages: [
           {
             role: 'system',
@@ -573,11 +580,11 @@ async function jsonToPdf(jsonBuffer) {
   const form = new FormData();
   form.append('files', htmlBuffer, { filename: 'index.html', contentType: 'text/html' });
 
-  const response = await fetch(`${GOTENBERG_URL}/forms/chromium/convert/html`, {
+  const response = await retryFetch(`${GOTENBERG_URL}/forms/chromium/convert/html`, {
     method: 'POST',
     body: form,
     headers: form.getHeaders(),
-    signal: AbortSignal.timeout(120_000),
+    timeout: 120_000,
   });
 
   if (!response.ok) {

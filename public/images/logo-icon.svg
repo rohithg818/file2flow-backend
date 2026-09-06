@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 160" fill="none">
+  <!-- Cloud -->
+  <ellipse cx="100" cy="100" rx="95" ry="60" fill="#2B9BF0"/>
+  <ellipse cx="50" cy="85" rx="55" ry="50" fill="#2B9BF0"/>
+  <ellipse cx="150" cy="85" rx="55" ry="50" fill="#2B9BF0"/>
+  <ellipse cx="100" cy="65" rx="45" ry="40" fill="#2B9BF0"/>
+  <!-- Document -->
+  <rect x="70" y="25" width="60" height="80" rx="3" fill="white"/>
+  <!-- Lines -->
+  <rect x="80" y="42" width="40" height="6" rx="3" fill="#2B9BF0"/>
+  <rect x="80" y="54" width="40" height="6" rx="3" fill="#2B9BF0"/>
+  <rect x="80" y="66" width="40" height="6" rx="3" fill="#2B9BF0"/>
+  <rect x="80" y="78" width="25" height="6" rx="3" fill="#2B9BF0"/>
+  <!-- Corner fold -->
+  <path d="M115 25 L130 25 L130 40 Z" fill="#B8DEF8"/>
+  <path d="M115 25 L115 40 L130 40" fill="none" stroke="white" stroke-width="1.5"/>
+</svg>

@@ -1,10 +1,11 @@
 const fetch = require('node-fetch').default || require('node-fetch');
 const FormData = require('form-data');
+const { retryFetch } = require('./retryFetch');
 
 const GOTENBERG_URL = process.env.GOTENBERG_URL || 'https://gotenberg-31r8.onrender.com';
 
 // Cold-start timeout: Render free tier sleeps after 15 min inactivity
-const GOTENBERG_TIMEOUT_MS = 60_000;
+const GOTENBERG_TIMEOUT_MS = 90_000;
 
 const MIME_TO_GOTENBERG_ENDPOINT = {
   // LibreOffice conversions (DOCX, XLSX, PPTX, ODT, etc.)
@@ -46,18 +47,13 @@ async function convertViaGotenberg(fileBuffer, filename, mimeType) {
     contentType: mimeType,
   });
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), GOTENBERG_TIMEOUT_MS);
-
   try {
-    const response = await fetch(`${GOTENBERG_URL}${endpoint}`, {
+    const response = await retryFetch(`${GOTENBERG_URL}${endpoint}`, {
       method: 'POST',
       body: form,
       headers: form.getHeaders(),
-      signal: controller.signal,
+      timeout: GOTENBERG_TIMEOUT_MS,
     });
-
-    clearTimeout(timeout);
 
     if (!response.ok) {
       const errorBody = await response.text().catch(() => 'No response body');
@@ -81,14 +77,11 @@ async function convertViaGotenberg(fileBuffer, filename, mimeType) {
 
     return pdfBuffer;
   } catch (err) {
-    clearTimeout(timeout);
-
     if (err.name === 'AbortError') {
       throw new Error(
-        'Gotenberg conversion timed out (60s). The service may be cold-starting. Try again in a moment.'
+        'Gotenberg conversion timed out. The service may be cold-starting. Try again in a moment.'
       );
     }
-
     throw err;
   }
 }
@@ -99,14 +92,9 @@ async function convertViaGotenberg(fileBuffer, filename, mimeType) {
  */
 async function checkGotenbergHealth() {
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15_000);
-
-    const response = await fetch(`${GOTENBERG_URL}/health`, {
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-
+    const response = await retryFetch(`${GOTENBERG_URL}/health`, {
+      timeout: 15_000,
+    }, 1);
     return response.ok;
   } catch {
     return false;

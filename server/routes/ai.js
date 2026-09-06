@@ -7,7 +7,8 @@ const { asyncHandler, logger } = require('../middleware/errorHandler');
 
 const router = express.Router();
 
-const GROQ_MODEL = 'qwen/qwen3.8-27b';
+const GROQ_MODEL = 'openai/gpt-oss-120b';
+const MISTRAL_MODEL = 'mistral-small-latest';
 
 function getGroqClient() {
   const apiKey = process.env.GROQ_API_KEY;
@@ -15,10 +16,18 @@ function getGroqClient() {
   return new Groq({ apiKey });
 }
 
+function getMistralClient() {
+  const apiKey = process.env.MISTRAL_API_KEY;
+  if (!apiKey) return null;
+  return new Groq({ apiKey, baseURL: 'https://api.mistral.ai/v1' });
+}
+
 async function chatCompletion(messages, maxTokens = 1024) {
-  const groq = getGroqClient();
-  const res = await groq.chat.completions.create({
-    model: GROQ_MODEL,
+  const mistral = getMistralClient();
+  const client = mistral || getGroqClient();
+  const model = mistral ? MISTRAL_MODEL : GROQ_MODEL;
+  const res = await client.chat.completions.create({
+    model,
     max_tokens: maxTokens,
     temperature: 0.3,
     messages,

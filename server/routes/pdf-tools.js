@@ -10,8 +10,39 @@ const {
   addPassword,
   removePassword,
 } = require('../pdf-tools');
+const { maybeWatermark } = require('../watermark');
+const { getSupabase } = require('../middleware/supabase');
 
 const router = express.Router();
+
+// Optional plan resolver — extracts user plan from Authorization header if present
+// so maybeWatermark can skip watermark for paid users
+async function resolveUserPlan(req, res, next) {
+  try {
+    const header = req.headers.authorization;
+    if (!header || !header.startsWith('Bearer ')) return next();
+
+    const { auth } = require('../firebaseAdmin');
+    const idToken = header.split('Bearer ')[1];
+    const decoded = await auth.verifyIdToken(idToken);
+    req.user = decoded;
+
+    const supabase = getSupabase();
+    if (supabase && decoded.uid) {
+      const { data } = await supabase
+        .from('users')
+        .select('plan')
+        .eq('uid', decoded.uid)
+        .single();
+      req.userPlan = data?.plan || 'free';
+    }
+  } catch {
+    // Auth failed or user not found — treat as free (watermark applied)
+  }
+  next();
+}
+
+router.use(resolveUserPlan);
 
 // Multer for PDF uploads (100MB max for PDF tools)
 const upload = multer({
@@ -53,16 +84,17 @@ router.post('/compress', upload.single('file'), async (req, res) => {
 
     const originalSize = req.file.size;
     const result = await compressPdf(req.file.buffer, level);
+    const output = await maybeWatermark(result, req.userPlan);
     const filename = req.file.originalname.replace(/\.pdf$/i, '') + '-compressed.pdf';
 
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="${filename}"`,
       'X-Original-Size': String(originalSize),
-      'X-Compressed-Size': String(result.length),
-      'X-Compression-Ratio': ((1 - result.length / originalSize) * 100).toFixed(1) + '%',
+      'X-Compressed-Size': String(output.length),
+      'X-Compression-Ratio': ((1 - output.length / originalSize) * 100).toFixed(1) + '%',
     });
-    res.send(result);
+    res.send(output);
   } catch (err) {
     console.error('Compress error:', err.message);
     res.status(500).json({ error: err.message });
@@ -82,12 +114,13 @@ router.post('/split', upload.single('file'), async (req, res) => {
     const results = await splitPdf(req.file.buffer, ranges);
 
     if (results.length === 1) {
+      const output = await maybeWatermark(results[0], req.userPlan);
       const filename = req.file.originalname.replace(/\.pdf$/i, '') + '-split.pdf';
       res.set({
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${filename}"`,
       });
-      return res.send(results[0]);
+      return res.send(output);
     }
 
     // Multiple ranges: return as JSON with page info (client can download individually)
@@ -109,7 +142,7 @@ router.post('/split', upload.single('file'), async (req, res) => {
       'Content-Disposition': `attachment; filename="${filename}"`,
       'X-Split-Count': String(results.length),
     });
-    res.send(results[0]);
+    res.send(await maybeWatermark(results[0], req.userPlan));
   } catch (err) {
     console.error('Split error:', err.message);
     res.status(500).json({ error: err.message });
@@ -132,7 +165,7 @@ router.post('/extract', upload.single('file'), async (req, res) => {
       'Content-Disposition': `attachment; filename="${filename}"`,
       'X-Total-Pages': String(results.length),
     });
-    res.send(results[0]);
+    res.send(await maybeWatermark(results[0], req.userPlan));
   } catch (err) {
     console.error('Extract error:', err.message);
     res.status(500).json({ error: err.message });
@@ -150,6 +183,7 @@ router.post('/merge', uploadMulti.array('files', 20), async (req, res) => {
 
     const buffers = req.files.map(f => f.buffer);
     const result = await mergePdf(buffers);
+    const output = await maybeWatermark(result, req.userPlan);
 
     const filename = req.files[0].originalname.replace(/\.pdf$/i, '') + '-merged.pdf';
     res.set({
@@ -157,7 +191,7 @@ router.post('/merge', uploadMulti.array('files', 20), async (req, res) => {
       'Content-Disposition': `attachment; filename="${filename}"`,
       'X-Merged-Count': String(req.files.length),
     });
-    res.send(result);
+    res.send(output);
   } catch (err) {
     console.error('Merge error:', err.message);
     res.status(500).json({ error: err.message });
@@ -181,13 +215,14 @@ router.post('/rotate', upload.single('file'), async (req, res) => {
       : undefined;
 
     const result = await rotatePdf(req.file.buffer, rotation, pages);
+    const output = await maybeWatermark(result, req.userPlan);
     const filename = req.file.originalname.replace(/\.pdf$/i, '') + '-rotated.pdf';
 
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="${filename}"`,
     });
-    res.send(result);
+    res.send(output);
   } catch (err) {
     console.error('Rotate error:', err.message);
     res.status(500).json({ error: err.message });
@@ -210,13 +245,14 @@ router.post('/reorder', upload.single('file'), async (req, res) => {
     }
 
     const result = await reorderPdf(req.file.buffer, newOrder);
+    const output = await maybeWatermark(result, req.userPlan);
     const filename = req.file.originalname.replace(/\.pdf$/i, '') + '-reordered.pdf';
 
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="${filename}"`,
     });
-    res.send(result);
+    res.send(output);
   } catch (err) {
     console.error('Reorder error:', err.message);
     res.status(500).json({ error: err.message });
@@ -237,13 +273,14 @@ router.post('/protect', upload.single('file'), async (req, res) => {
 
     const ownerPassword = req.body.ownerPassword;
     const result = await addPassword(req.file.buffer, userPassword, ownerPassword);
+    const output = await maybeWatermark(result, req.userPlan);
     const filename = req.file.originalname.replace(/\.pdf$/i, '') + '-protected.pdf';
 
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="${filename}"`,
     });
-    res.send(result);
+    res.send(output);
   } catch (err) {
     console.error('Protect error:', err.message);
     res.status(500).json({ error: err.message });
@@ -263,13 +300,14 @@ router.post('/unlock', upload.single('file'), async (req, res) => {
     }
 
     const result = await removePassword(req.file.buffer, password);
+    const output = await maybeWatermark(result, req.userPlan);
     const filename = req.file.originalname.replace(/\.pdf$/i, '') + '-unlocked.pdf';
 
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="${filename}"`,
     });
-    res.send(result);
+    res.send(output);
   } catch (err) {
     console.error('Unlock error:', err.message);
     res.status(500).json({ error: err.message });

@@ -5,6 +5,7 @@ const XLSX = require('xlsx');
 const mammoth = require('mammoth');
 const JSZip = require('jszip');
 const { jsonToPdf } = require('./json-to-pdf');
+const { retryFetch } = require('./retryFetch');
 
 const GOTENBERG_URL = process.env.GOTENBERG_URL || 'https://gotenberg-31r8.onrender.com';
 
@@ -155,11 +156,11 @@ async function gotenbergLibreOffice(buffer, filename, mimeType) {
   const form = new FormData();
   form.append('files', buffer, { filename, contentType: resolvedMime });
 
-  const response = await fetch(`${GOTENBERG_URL}${endpoint}`, {
+  const response = await retryFetch(`${GOTENBERG_URL}${endpoint}`, {
     method: 'POST',
     body: form,
     headers: form.getHeaders(),
-    signal: AbortSignal.timeout(120_000),
+    timeout: 120_000,
   });
 
   if (!response.ok) {
@@ -182,11 +183,11 @@ async function gotenbergChromium(htmlBuffer, filename) {
   const form = new FormData();
   form.append('files', htmlBuffer, { filename: 'index.html', contentType: 'text/html' });
 
-  const response = await fetch(`${GOTENBERG_URL}/forms/chromium/convert/html`, {
+  const response = await retryFetch(`${GOTENBERG_URL}/forms/chromium/convert/html`, {
     method: 'POST',
     body: form,
     headers: form.getHeaders(),
-    signal: AbortSignal.timeout(120_000),
+    timeout: 120_000,
   });
 
   if (!response.ok) {
@@ -698,11 +699,11 @@ async function gotenbergLibreOfficeReverse(pdfBuffer, filename, targetFormat) {
   form.append('files', pdfBuffer, { filename, contentType: 'application/pdf' });
   form.append('outputFilename', targetFormat === 'docx' ? 'output.docx' : 'output.xlsx');
 
-  const response = await fetch(`${GOTENBERG_URL}/forms/libreoffice/convert`, {
+  const response = await retryFetch(`${GOTENBERG_URL}/forms/libreoffice/convert`, {
     method: 'POST',
     body: form,
     headers: form.getHeaders(),
-    signal: AbortSignal.timeout(120_000),
+    timeout: 120_000,
   });
 
   if (!response.ok) {

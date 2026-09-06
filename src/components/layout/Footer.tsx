@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layers } from 'lucide-react';
+import { Layers, Linkedin } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ActivePage } from '../../types';
 
@@ -14,21 +14,19 @@ export const Footer: React.FC = () => {
  <div className="max-w-7xl mx-auto px-8 py-20">
  <div className="flex flex-col md:flex-row justify-between items-start gap-12">
  
- <div className="space-y-4">
- <div className="flex items-center gap-2">
- <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#2563EB] to-[#1D4ED8] flex items-center justify-center">
- <Layers className="w-5 h-5 text-[#0F172A]" />
- </div>
- <div className="flex items-baseline gap-0.5">
- <span className="text-lg font-bold text-[#0F172A] tracking-tight">File</span>
- <span className="text-lg font-extrabold" style={{ color: '#DC2626' }}>2</span>
- <span className="text-lg font-bold" style={{ color: '#2563EB' }}>Flow</span>
- </div>
- </div>
- <p className="text-sm max-w-xs leading-relaxed" style={{ color: '#64748B' }}>
- A lightweight browser-first tool for turning your documents, spreadsheets, data, and images into neat output files.
- </p>
- </div>
+  <div className="space-y-4">
+  <div className="flex items-center gap-2">
+  <img src="/images/logo.png" alt="File2Flow" className="h-10 w-auto" />
+  <div className="flex items-baseline gap-0.5">
+  <span className="text-lg font-bold text-[#0F172A] tracking-tight">File</span>
+  <span className="text-lg font-extrabold" style={{ color: '#DC2626' }}>2</span>
+  <span className="text-lg font-bold" style={{ color: '#2563EB' }}>Flow</span>
+  </div>
+  </div>
+  <p className="text-sm max-w-xs leading-relaxed" style={{ color: '#64748B' }}>
+  A lightweight browser-first tool for turning your documents, spreadsheets, data, and images into neat output files.
+  </p>
+  </div>
 
  <div className="flex flex-wrap gap-12">
  <div className="space-y-3">
@@ -87,9 +85,15 @@ export const Footer: React.FC = () => {
  <p className="text-sm" style={{ color: '#64748B' }}>
  © {new Date().getFullYear()} File2Flow. All rights reserved.
  </p>
+ <div className="flex items-center gap-4">
+ <a href="https://www.linkedin.com/company/143682926" target="_blank" rel="noopener noreferrer"
+   className="flex items-center gap-1.5 text-sm hover:opacity-80 transition-opacity" style={{ color: '#64748B' }}>
+   <Linkedin className="w-4 h-4" /> LinkedIn
+ </a>
  <p className="text-sm" style={{ color: '#64748B' }}>
- Built for clean, lightweight document conversion.
+   Built for clean, lightweight document conversion.
  </p>
+ </div>
  </div>
  </div>
  </footer>

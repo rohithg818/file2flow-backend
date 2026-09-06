@@ -24,13 +24,13 @@ const PLANS = {
     prices: {
       monthly: {
         priceId: process.env.PADDLE_PRICE_ID_STARTER_MONTHLY,
-        amount: 1500, // $15.00 in cents
+        amount: 299, // $2.99/mo
         currency: 'USD',
         interval: 'month',
       },
       yearly: {
         priceId: process.env.PADDLE_PRICE_ID_STARTER_YEARLY,
-        amount: 15000, // $150.00/yr (2 months free)
+        amount: 2990, // $29.90/yr
         currency: 'USD',
         interval: 'year',
       },
@@ -52,13 +52,13 @@ const PLANS = {
     prices: {
       monthly: {
         priceId: process.env.PADDLE_PRICE_ID_BUSINESS_MONTHLY,
-        amount: 9900, // $99.00 in cents
+        amount: 999, // $9.99/mo
         currency: 'USD',
         interval: 'month',
       },
       yearly: {
         priceId: process.env.PADDLE_PRICE_ID_BUSINESS_YEARLY,
-        amount: 99000, // $990.00/yr (2 months free)
+        amount: 9990, // $99.90/yr
         currency: 'USD',
         interval: 'year',
       },

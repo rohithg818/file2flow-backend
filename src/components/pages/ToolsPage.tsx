@@ -129,56 +129,56 @@ export function ToolsPage() {
           title="DOCX → PDF"
           description="Word to PDF"
           color="#2563eb"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--docx-to-pdf')}
         />
         <ToolCard
           icon={<FileSpreadsheet size={28} />}
           title="XLSX → PDF"
           description="Excel to PDF"
           color="#059669"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--xlsx-to-pdf')}
         />
         <ToolCard
           icon={<FileDown size={28} />}
           title="PPTX → PDF"
           description="PowerPoint to PDF"
           color="#dc2626"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--pptx-to-pdf')}
         />
         <ToolCard
           icon={<File size={28} />}
           title="HTML → PDF"
           description="Web page to PDF"
           color="#7c3aed"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--html-to-pdf')}
         />
         <ToolCard
           icon={<FileText size={28} />}
           title="CSV → PDF"
           description="Spreadsheet to PDF"
           color="#0891b2"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--csv-to-pdf')}
         />
         <ToolCard
           icon={<FileCode size={28} />}
           title="MD → PDF"
           description="Markdown to PDF"
           color="#6366f1"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--md-to-pdf')}
         />
         <ToolCard
           icon={<Type size={28} />}
           title="TXT → PDF"
           description="Plain text to PDF"
           color="#64748b"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--txt-to-pdf')}
         />
         <ToolCard
           icon={<Image size={28} />}
           title="Image → PDF"
           description="JPG/PNG to PDF"
           color="#c2410c"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--image-to-pdf')}
         />
       </ToolSection>
 
@@ -189,21 +189,21 @@ export function ToolsPage() {
           title="PDF → HTML"
           description="PDF to web page"
           color="#7c3aed"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--pdf-to-html')}
         />
         <ToolCard
           icon={<Type size={28} />}
           title="PDF → TXT"
           description="PDF to plain text"
           color="#64748b"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--pdf-to-txt')}
         />
         <ToolCard
           icon={<FileCode size={28} />}
           title="PDF → MD"
           description="PDF to Markdown"
           color="#6366f1"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--pdf-to-md')}
         />
       </ToolSection>
 
@@ -214,91 +214,91 @@ export function ToolsPage() {
           title="DOCX → HTML"
           description="Word to web page"
           color="#2563eb"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--docx-to-html')}
         />
         <ToolCard
           icon={<FileCode size={28} />}
           title="DOCX → MD"
           description="Word to Markdown"
           color="#6366f1"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--docx-to-md')}
         />
         <ToolCard
           icon={<Type size={28} />}
           title="DOCX → TXT"
           description="Word to plain text"
           color="#64748b"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--docx-to-txt')}
         />
         <ToolCard
           icon={<FileSpreadsheet size={28} />}
           title="XLSX → CSV"
           description="Excel to CSV"
           color="#059669"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--xlsx-to-csv')}
         />
         <ToolCard
           icon={<File size={28} />}
           title="XLSX → HTML"
           description="Excel to web page"
           color="#7c3aed"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--xlsx-to-html')}
         />
         <ToolCard
           icon={<FileCode size={28} />}
           title="XLSX → MD"
           description="Excel to Markdown"
           color="#6366f1"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--xlsx-to-md')}
         />
         <ToolCard
           icon={<Type size={28} />}
           title="XLSX → TXT"
           description="Excel to plain text"
           color="#64748b"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--xlsx-to-txt')}
         />
         <ToolCard
           icon={<ArrowRightLeft size={28} />}
           title="CSV → XLSX"
           description="CSV to Excel"
           color="#059669"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--csv-to-xlsx')}
         />
         <ToolCard
           icon={<File size={28} />}
           title="CSV → HTML"
           description="CSV to web table"
           color="#7c3aed"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--csv-to-html')}
         />
         <ToolCard
           icon={<FileCode size={28} />}
           title="CSV → MD"
           description="CSV to Markdown table"
           color="#6366f1"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--csv-to-md')}
         />
         <ToolCard
           icon={<Presentation size={28} />}
           title="PPTX → HTML"
           description="Slides to web page"
           color="#dc2626"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--pptx-to-html')}
         />
         <ToolCard
           icon={<Type size={28} />}
           title="PPTX → TXT"
           description="Slides to plain text"
           color="#64748b"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--pptx-to-txt')}
         />
         <ToolCard
           icon={<FileCode size={28} />}
           title="PPTX → MD"
           description="Slides to Markdown"
           color="#6366f1"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--pptx-to-md')}
         />
       </ToolSection>
 
@@ -309,42 +309,42 @@ export function ToolsPage() {
           title="HTML → TXT"
           description="Strip HTML tags"
           color="#7c3aed"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--html-to-txt')}
         />
         <ToolCard
           icon={<FileCode size={28} />}
           title="HTML → MD"
           description="HTML to Markdown"
           color="#6366f1"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--html-to-md')}
         />
         <ToolCard
           icon={<FileCode size={28} />}
           title="MD → HTML"
           description="Markdown to web page"
           color="#6366f1"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--md-to-html')}
         />
         <ToolCard
           icon={<Type size={28} />}
           title="MD → TXT"
           description="Markdown to plain text"
           color="#64748b"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--md-to-txt')}
         />
         <ToolCard
           icon={<File size={28} />}
           title="TXT → HTML"
           description="Text to web page"
           color="#7c3aed"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--txt-to-html')}
         />
         <ToolCard
           icon={<FileCode size={28} />}
           title="TXT → MD"
           description="Text to Markdown"
           color="#6366f1"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--txt-to-md')}
         />
       </ToolSection>
 
@@ -362,14 +362,14 @@ export function ToolsPage() {
           title="JSON → HTML"
           description="JSON to styled table"
           color="#d97706"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--json-to-html')}
         />
         <ToolCard
           icon={<FileJson size={28} />}
           title="JSON → TXT"
           description="JSON to formatted text"
           color="#64748b"
-          onClick={() => setActivePage('tools-convert')}
+          onClick={() => setActivePage('tools-convert--json-to-txt')}
         />
       </ToolSection>
 
