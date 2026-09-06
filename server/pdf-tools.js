@@ -1,5 +1,5 @@
 const { PDFDocument, rgb, degrees } = require('pdf-lib');
-const fetch = require('node-fetch');
+const fetch = require('node-fetch').default || require('node-fetch');
 
 // ============================================================
 // COMPRESS PDF
@@ -10,9 +10,49 @@ const fetch = require('node-fetch');
  * Offers 3 levels: low (minimal change), medium (strip metadata + compress), high (aggressive)
  */
 async function compressPdf(pdfBuffer, level = 'medium') {
+  const gotenbergUrl = process.env.GOTENBERG_URL;
+
+  // Use Gotenberg's qpdf optimizer for medium/high (real compression engine)
+  if ((level === 'medium' || level === 'high') && gotenbergUrl) {
+    try {
+      const FormData = require('form-data');
+      const form = new FormData();
+      form.append('files', pdfBuffer, {
+        filename: 'input.pdf',
+        contentType: 'application/pdf',
+      });
+
+      if (level === 'medium') {
+        form.append('qpdfOptimize', 'true');
+        form.append('removeMetadata', 'false');
+        form.append('collapseDuplicateStreams', 'true');
+      } else {
+        form.append('qpdfOptimize', 'true');
+        form.append('removeMetadata', 'true');
+        form.append('collapseDuplicateStreams', 'true');
+      }
+
+      const response = await fetch(`${gotenbergUrl}/forms/pdfengines/optimize`, {
+        method: 'POST',
+        body: form,
+        headers: form.getHeaders(),
+        signal: AbortSignal.timeout(120_000),
+      });
+
+      if (response.ok) {
+        const resultBuffer = Buffer.from(await response.arrayBuffer());
+        if (resultBuffer.slice(0, 5).toString('ascii') === '%PDF-' && resultBuffer.length < pdfBuffer.length) {
+          return resultBuffer;
+        }
+      }
+    } catch {
+      // Fall through to pdf-lib fallback
+    }
+  }
+
+  // Fallback: pdf-lib re-save
   const pdfDoc = await PDFDocument.load(pdfBuffer, { ignoreEncryption: true });
 
-  // Remove metadata for medium/high
   if (level === 'medium' || level === 'high') {
     pdfDoc.setTitle('');
     pdfDoc.setAuthor('');
@@ -22,7 +62,6 @@ async function compressPdf(pdfBuffer, level = 'medium') {
     pdfDoc.setCreator('');
   }
 
-  // Remove unused objects and compress
   const options = {
     useObjectStreams: level !== 'low',
     addDefaultPage: false,
@@ -30,36 +69,6 @@ async function compressPdf(pdfBuffer, level = 'medium') {
   };
 
   const compressedBytes = await pdfDoc.save(options);
-
-  // For high compression, try Gotenberg re-save if available
-  if (level === 'high' && process.env.GOTENBERG_URL) {
-    try {
-      const FormData = require('form-data');
-      const form = new FormData();
-      form.append('files', Buffer.from(compressedBytes), {
-        filename: 'compressed.pdf',
-        contentType: 'application/pdf',
-      });
-
-      const response = await fetch(`${process.env.GOTENBERG_URL}/forms/libreoffice/convert`, {
-        method: 'POST',
-        body: form,
-        headers: form.getHeaders(),
-        signal: AbortSignal.timeout(60_000),
-      });
-
-      if (response.ok) {
-        const resultBuffer = await response.buffer();
-        // Only use if it's a valid PDF and smaller
-        if (resultBuffer.slice(0, 5).toString('ascii') === '%PDF-' && resultBuffer.length < compressedBytes.length) {
-          return Buffer.from(resultBuffer);
-        }
-      }
-    } catch {
-      // Fall through to pdf-lib result
-    }
-  }
-
   return Buffer.from(compressedBytes);
 }
 

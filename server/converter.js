@@ -1,5 +1,5 @@
 const { PDFDocument } = require('pdf-lib');
-const fetch = require('node-fetch');
+const fetch = require('node-fetch').default || require('node-fetch');
 const FormData = require('form-data');
 const XLSX = require('xlsx');
 const { jsonToPdf } = require('./json-to-pdf');
@@ -38,6 +38,7 @@ const CONVERSION_MAP = {
   'ods:pdf':    { engine: 'gotenberg-libreoffice' },
   'odp:pdf':    { engine: 'gotenberg-libreoffice' },
   'rtf:pdf':    { engine: 'gotenberg-libreoffice' },
+  'md:pdf':     { engine: 'markdown-to-pdf' },
   'html:pdf':   { engine: 'gotenberg-chromium' },
   'csv:pdf':    { engine: 'csv-to-html-table' },  // CSV → HTML table → Chromium → PDF
   'image:pdf':  { engine: 'gotenberg-libreoffice' },
@@ -66,6 +67,13 @@ const GOTENBERG_MIME_MAP = {
   'application/vnd.oasis.opendocument.presentation': '/forms/libreoffice/convert',
   'text/rtf': '/forms/libreoffice/convert',
   'text/html': '/forms/chromium/convert/html',
+  'text/markdown': '/forms/chromium/convert/html',
+  'text/plain': '/forms/chromium/convert/html',
+  'image/png': '/forms/libreoffice/convert',
+  'image/jpeg': '/forms/libreoffice/convert',
+  'image/webp': '/forms/libreoffice/convert',
+  'image/gif': '/forms/libreoffice/convert',
+  'image/svg+xml': '/forms/chromium/convert/html',
 };
 
 // ============================================================
@@ -104,7 +112,7 @@ async function gotenbergLibreOffice(buffer, filename, mimeType) {
 
 async function gotenbergChromium(htmlBuffer, filename) {
   const form = new FormData();
-  form.append('files', htmlBuffer, { filename: 'page.html', contentType: 'text/html' });
+  form.append('files', htmlBuffer, { filename: 'index.html', contentType: 'text/html' });
 
   const response = await fetch(`${GOTENBERG_URL}/forms/chromium/convert/html`, {
     method: 'POST',
@@ -123,6 +131,60 @@ async function gotenbergChromium(htmlBuffer, filename) {
     throw new Error('Gotenberg returned non-PDF output');
   }
   return result;
+}
+
+// ============================================================
+// ENGINE: Markdown → HTML → PDF (via Chromium)
+// ============================================================
+
+async function markdownToPdf(mdBuffer) {
+  const md = mdBuffer.toString('utf-8');
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>
+  body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; line-height: 1.6; color: #333; }
+  h1 { font-size: 28px; border-bottom: 2px solid #2563eb; padding-bottom: 8px; color: #1e40af; }
+  h2 { font-size: 22px; color: #1e40af; margin-top: 24px; }
+  h3 { font-size: 18px; color: #374151; }
+  p { margin: 12px 0; }
+  ul, ol { padding-left: 24px; margin: 12px 0; }
+  li { margin: 6px 0; }
+  code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 14px; }
+  pre { background: #1f2937; color: #e5e7eb; padding: 16px; border-radius: 8px; overflow-x: auto; }
+  pre code { background: transparent; padding: 0; color: inherit; }
+  blockquote { border-left: 4px solid #2563eb; padding-left: 16px; color: #6b7280; margin: 12px 0; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+  th, td { border: 1px solid #d1d5db; padding: 8px 12px; text-align: left; }
+  th { background: #2563eb; color: white; }
+  tr:nth-child(even) td { background: #f9fafb; }
+  hr { border: none; border-top: 1px solid #d1d5db; margin: 24px 0; }
+  a { color: #2563eb; text-decoration: none; }
+  strong { color: #111827; }
+</style></head><body>
+${simpleMarkdownToHtml(md)}
+</body></html>`;
+  return gotenbergChromium(Buffer.from(html, 'utf-8'), 'output.html');
+}
+
+function simpleMarkdownToHtml(md) {
+  let html = md
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`(.+?)`/g, '<code>$1</code>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+    .replace(/^\|(.+)\|$/gm, (match, content) => {
+      const cells = content.split('|').map(c => c.trim());
+      return '<tr>' + cells.map(c => `<td>${c}</td>`).join('') + '</tr>';
+    })
+    .replace(/(<tr>.*<\/tr>\n?)+/g, '<table>$&</table>')
+    .replace(/^---$/gm, '<hr>')
+    .replace(/\n{2,}/g, '</p><p>')
+    .replace(/\n/g, '<br>');
+  return `<p>${html}</p>`;
 }
 
 // ============================================================
@@ -270,6 +332,11 @@ async function convertFile(fileBuffer, sourceFormat, targetFormat, filename, mim
   let resultContentType;
 
   switch (route.engine) {
+    case 'markdown-to-pdf':
+      resultBuffer = await markdownToPdf(fileBuffer);
+      resultContentType = 'application/pdf';
+      break;
+
     case 'gotenberg-libreoffice':
       resultBuffer = await gotenbergLibreOffice(fileBuffer, filename, mimeType);
       resultContentType = 'application/pdf';

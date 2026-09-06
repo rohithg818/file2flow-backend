@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const fetch = require('node-fetch');
+const fetch = require('node-fetch').default || require('node-fetch');
 const FormData = require('form-data');
 const { getSupabase } = require('./middleware/supabase');
 
@@ -350,7 +350,7 @@ async function jsonToPdf(jsonBuffer) {
   // Convert HTML → PDF via Gotenberg Chromium
   const htmlBuffer = Buffer.from(html, 'utf-8');
   const form = new FormData();
-  form.append('files', htmlBuffer, { filename: 'report.html', contentType: 'text/html' });
+  form.append('files', htmlBuffer, { filename: 'index.html', contentType: 'text/html' });
 
   const response = await fetch(`${GOTENBERG_URL}/forms/chromium/convert/html`, {
     method: 'POST',

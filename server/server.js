@@ -4,7 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const multer = require('multer');
-const fetch = require('node-fetch');
+const fetch = require('node-fetch').default || require('node-fetch');
 const FormData = require('form-data');
 
 const authRoutes = require('./routes/auth');
