@@ -112,6 +112,42 @@ const defaultSettings: ConversionSettings = {
   preserveLayout: true,
 };
 
+const pageToPath: Record<string, string> = {
+  landing: '/',
+  convert: '/convert',
+  dashboard: '/dashboard',
+  pricing: '/pricing',
+  account: '/account',
+  auth: '/auth',
+  tools: '/tools',
+  'tools-pdf-compress': '/tools/compress',
+  'tools-pdf-split': '/tools/split',
+  'tools-pdf-merge': '/tools/merge',
+  'tools-pdf-rotate': '/tools/rotate',
+  'tools-pdf-protect': '/tools/protect',
+  'tools-json': '/tools/json',
+};
+
+const pathToPage: Record<string, ActivePage> = Object.fromEntries(
+  Object.entries(pageToPath).map(([page, path]) => [path, page as ActivePage])
+) as Record<string, ActivePage>;
+
+function getPageFromUrl(): ActivePage {
+  const path = window.location.pathname;
+  if (pathToPage[path]) return pathToPage[path];
+  if (path.startsWith('/tools/convert/')) return `tools-convert${path.slice('/tools/convert'.length)}` as ActivePage;
+  if (path === '/') return 'landing';
+  return 'landing';
+}
+
+function getPathForPage(page: ActivePage): string {
+  if (page.startsWith('tools-convert')) {
+    const suffix = page.slice('tools-convert'.length);
+    return `/tools/convert${suffix}`;
+  }
+  return pageToPath[page] || '/';
+}
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -136,7 +172,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   }, []);
 
-  const [activePage, setActivePage] = useState<ActivePage>('landing');
+  const [activePage, setActivePage] = useState<ActivePage>(getPageFromUrl);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setActivePage(getPageFromUrl());
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  useEffect(() => {
+    const path = getPathForPage(activePage);
+    if (window.location.pathname !== path) {
+      window.history.pushState({}, '', path);
+    }
+    window.scrollTo(0, 0);
+  }, [activePage]);
 
   const [user, setUser] = useState<UserProfile | null>(() => {
     const saved = localStorage.getItem('ff_user');
