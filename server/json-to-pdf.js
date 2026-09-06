@@ -281,8 +281,8 @@ function getFallbackTemplate() {
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; color: #1f2937; background: #fff; }
-  h1 { font-size: 22px; color: #111827; margin: 16px 0 10px; border-bottom: 2px solid #2563eb; padding-bottom: 6px; }
-  h2 { font-size: 16px; color: #374151; margin: 12px 0 8px; }
+  h1 { font-size: 22px; color: #111827; font-weight: 700; margin: 16px 0 6px; padding-bottom: 8px; border-bottom: 2px solid #2563eb; }
+  h2 { font-size: 16px; color: #374151; font-weight: 700; margin: 12px 0 6px; padding-bottom: 4px; border-bottom: 1px solid #e5e7eb; }
   table { border-collapse: collapse; width: 100%; margin: 10px 0 16px; font-size: 12px; }
   th { background: #1e40af; color: white; padding: 8px 12px; text-align: left; font-weight: 600; }
   td { padding: 6px 12px; border: 1px solid #e5e7eb; }
@@ -292,6 +292,13 @@ function getFallbackTemplate() {
   .kv strong { color: #1e40af; }
   .report-title { font-size: 28px; color: #111827; margin-bottom: 4px; }
   .report-subtitle { color: #6b7280; font-size: 13px; margin-bottom: 20px; }
+  @media print {
+    body { padding: 0; }
+    h1, h2 { break-after: avoid; }
+    table, .json-block { break-inside: avoid; page-break-inside: avoid; }
+    tr { break-inside: avoid; page-break-inside: avoid; }
+    p { orphans: 3; widows: 3; }
+  }
 </style>
 </head>
 <body>

@@ -143,12 +143,12 @@ async function markdownToPdf(mdBuffer) {
 <html><head><meta charset="UTF-8">
 <style>
   body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; line-height: 1.6; color: #333; }
-  h1 { font-size: 28px; border-bottom: 2px solid #2563eb; padding-bottom: 8px; color: #1e40af; }
-  h2 { font-size: 22px; color: #1e40af; margin-top: 24px; }
-  h3 { font-size: 18px; color: #374151; }
-  p { margin: 12px 0; }
-  ul, ol { padding-left: 24px; margin: 12px 0; }
-  li { margin: 6px 0; }
+  h1 { font-size: 28px; font-weight: 700; color: #1e40af; margin: 20px 0 6px; padding-bottom: 8px; border-bottom: 2px solid #2563eb; }
+  h2 { font-size: 22px; font-weight: 700; color: #1e40af; margin: 20px 0 6px; padding-bottom: 6px; border-bottom: 1px solid #d1d5db; }
+  h3 { font-size: 18px; font-weight: 700; color: #374151; margin: 16px 0 4px; }
+  p { margin: 10px 0; }
+  ul, ol { padding-left: 24px; margin: 10px 0; }
+  li { margin: 4px 0; }
   code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 14px; }
   pre { background: #1f2937; color: #e5e7eb; padding: 16px; border-radius: 8px; overflow-x: auto; }
   pre code { background: transparent; padding: 0; color: inherit; }
@@ -160,6 +160,14 @@ async function markdownToPdf(mdBuffer) {
   hr { border: none; border-top: 1px solid #d1d5db; margin: 24px 0; }
   a { color: #2563eb; text-decoration: none; }
   strong { color: #111827; }
+  @media print {
+    body { padding: 0; }
+    h1, h2, h3 { break-after: avoid; }
+    ul, ol, table, blockquote, pre { break-inside: avoid; page-break-inside: avoid; }
+    li { break-inside: avoid; page-break-inside: avoid; }
+    tr { break-inside: avoid; page-break-inside: avoid; }
+    p { orphans: 3; widows: 3; }
+  }
 </style></head><body>
 ${simpleMarkdownToHtml(md)}
 </body></html>`;
@@ -283,8 +291,13 @@ async function pdfToHtml(pdfBuffer) {
 <html><head><meta charset="UTF-8">
 <style>
   body { font-family: Arial, sans-serif; padding: 20px; }
-  .page { border: 1px solid #ddd; padding: 16px; margin: 10px 0; page-break-after: always; }
+  .page { border: 1px solid #ddd; padding: 16px; margin: 10px 0; }
   .page-number { color: #666; font-size: 12px; margin-bottom: 8px; }
+  @media print {
+    body { padding: 0; }
+    .page { border: none; margin: 0; padding: 0; break-inside: avoid; page-break-inside: avoid; }
+    .page + .page { margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px; }
+  }
 </style></head><body>`;
 
   for (let i = 0; i < pageCount; i++) {

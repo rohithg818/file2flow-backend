@@ -405,6 +405,11 @@ function getPageSizeCSS(settings: ConversionSettings): string {
     @media print {
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0; padding: 0; }
       @page { margin: ${m}; }
+      h1, h2, h3, h4 { break-after: avoid; page-break-after: avoid; }
+      ul, ol, table, pre, blockquote { break-inside: avoid; page-break-inside: avoid; }
+      li, tr, .slide { break-inside: avoid; page-break-inside: avoid; }
+      p { orphans: 3; widows: 3; }
+      thead { display: table-header-group; }
     }
   `;
 }
@@ -463,7 +468,7 @@ async function docxToHtml(file: File, name: string, pageSizeCSS: string, setting
         margin: 10pt 0 4pt;
         line-height: 1.3;
         border-bottom: 1px solid #ccc;
-        padding-bottom: 3pt;
+        padding-bottom: 6pt;
       }
       .docx-content h3 {
         font-size: 11pt;
@@ -755,7 +760,7 @@ async function markdownToHtml(file: File, name: string, pageSizeCSS: string): Pr
   return wrapHtml(name, pageSizeCSS, `
     <div class="markdown-body"><p>${html}</p></div>
     <style>
-      .markdown-body h1 { font-size:20px; font-weight:700; color:#000; margin:16px 0 6px; border-bottom:1px solid #ccc; padding-bottom:4px; }
+      .markdown-body h1 { font-size:20px; font-weight:700; color:#000; margin:16px 0 6px; border-bottom:1px solid #ccc; padding-bottom:6px; }
       .markdown-body h2 { font-size:16px; font-weight:700; color:#333; margin:14px 0 6px; }
       .markdown-body h3 { font-size:13px; font-weight:600; margin:10px 0 4px; }
       .markdown-body p { margin:4px 0; }
@@ -846,6 +851,13 @@ function wrapHtml(title: string, pageSizeCSS: string, bodyContent: string): stri
 <title>${escapeHtml(title)}</title>
 <style>
   ${pageSizeCSS}
+  @media print {
+    h1, h2, h3, h4 { break-after: avoid; page-break-after: avoid; }
+    ul, ol, table, pre, blockquote, .sheet-title { break-inside: avoid; page-break-inside: avoid; }
+    li, tr, .slide { break-inside: avoid; page-break-inside: avoid; }
+    p { orphans: 3; widows: 3; }
+    thead { display: table-header-group; }
+  }
 </style>
 </head>
 <body style="background:white;">
