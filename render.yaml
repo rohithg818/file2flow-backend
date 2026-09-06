@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: file2flow-backend
+    runtime: node
+    rootDir: server
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    autoDeploy: true
+    envVars:
+      - key: GOTENBERG_URL
+        value: https://gotenberg-31r8.onrender.com
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+      - key: PADDLE_API_KEY
+        sync: false
+      - key: PADDLE_VENDOR_ID
+        value: "112765"
+      - key: PADDLE_ENVIRONMENT
+        value: sandbox
+      - key: PADDLE_WEBHOOK_SECRET
+        sync: false
+      - key: PADDLE_PRICE_ID_STARTER_MONTHLY
+        sync: false
+      - key: PADDLE_PRICE_ID_STARTER_YEARLY
+        sync: false
+      - key: PADDLE_PRICE_ID_BUSINESS_MONTHLY
+        sync: false
+      - key: PADDLE_PRICE_ID_BUSINESS_YEARLY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: NODE_ENV
+        value: production
