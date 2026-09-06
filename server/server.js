@@ -9,7 +9,6 @@ const FormData = require('form-data');
 
 const authRoutes = require('./routes/auth');
 const conversionRoutes = require('./routes/conversions');
-const stripeRoutes = require('./routes/stripe');
 const paddleRoutes = require('./routes/paddle');
 const userRoutes = require('./routes/user');
 const aiRoutes = require('./routes/ai');
@@ -55,7 +54,6 @@ const upload = multer({
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/conversions', conversionRoutes);
-app.use('/api/stripe', stripeRoutes);
 app.use('/api/webhooks/paddle', paddleRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/ai', aiRoutes);
