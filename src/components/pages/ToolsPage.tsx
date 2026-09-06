@@ -33,7 +33,8 @@ function ToolCard({ icon, title, description, color, onClick }: ToolCardProps) {
   return (
     <button
       onClick={onClick}
-      className="group flex flex-col items-center gap-3 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-lg transition-all duration-200 cursor-pointer text-center"
+      className="group flex flex-col items-center gap-3 p-6 rounded-2xl border hover:border-blue-400 hover:shadow-lg transition-all duration-200 cursor-pointer text-center"
+      style={{ background: 'rgba(255,255,255,0.8)', borderColor: '#E2E8F0', backdropFilter: 'blur(20px)' }}
     >
       <div
         className="w-14 h-14 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110"
@@ -42,8 +43,8 @@ function ToolCard({ icon, title, description, color, onClick }: ToolCardProps) {
         {icon}
       </div>
       <div>
-        <h3 className="font-semibold text-gray-900 dark:text-white text-sm">{title}</h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{description}</p>
+        <h3 className="font-semibold text-sm" style={{ color: '#0F172A' }}>{title}</h3>
+        <p className="text-xs mt-1" style={{ color: '#64748B' }}>{description}</p>
       </div>
     </button>
   );
@@ -52,8 +53,8 @@ function ToolCard({ icon, title, description, color, onClick }: ToolCardProps) {
 function ToolSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mb-10">
-      <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-        <div className="w-1.5 h-5 rounded-full bg-blue-500" />
+      <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#0F172A' }}>
+        <div className="w-1.5 h-5 rounded-full" style={{ background: '#2563EB' }} />
         {title}
       </h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -69,10 +70,10 @@ export function ToolsPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-12">
       <div className="text-center mb-12">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
+        <h1 className="text-3xl font-bold mb-3" style={{ color: '#0F172A' }}>
           All PDF & Document Tools
         </h1>
-        <p className="text-gray-500 dark:text-gray-400 max-w-xl mx-auto">
+        <p className="max-w-xl mx-auto" style={{ color: '#64748B' }}>
           Free online tools to convert, compress, merge, split, and edit your documents.
           Any format to any format — powered by LibreOffice and Chromium.
         </p>

@@ -27,9 +27,9 @@ const CONTENT_TYPES = {
 
 const CONVERSION_MAP = {
   // === TO PDF (via Gotenberg) ===
-  'docx:pdf':   { engine: 'gotenberg-libreoffice' },
+  'docx:pdf':   { engine: 'docx-to-pdf' },
   'xlsx:pdf':   { engine: 'gotenberg-libreoffice' },
-  'pptx:pdf':   { engine: 'gotenberg-libreoffice' },
+  'pptx:pdf':   { engine: 'pptx-to-pdf' },
   'odt:pdf':    { engine: 'gotenberg-libreoffice' },
   'ods:pdf':    { engine: 'gotenberg-libreoffice' },
   'odp:pdf':    { engine: 'gotenberg-libreoffice' },
@@ -193,6 +193,85 @@ async function textToPdf(textBuffer) {
   @media print { body { padding: 0; } }
 </style></head><body>${escapeHtml(text)}</body></html>`;
   return gotenbergChromium(Buffer.from(html, 'utf-8'), 'output.html');
+}
+
+// ============================================================
+// ENGINE: DOCX → PDF (via mammoth → HTML → Chromium)
+// ============================================================
+
+const DOCX_PDF_STYLES = `
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Calibri', 'Segoe UI', Arial, sans-serif;
+    font-size: 11pt;
+    line-height: 1.5;
+    color: #1a1a1a;
+    max-width: 100%;
+    overflow: hidden;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  @page { size: A4; margin: 20mm 18mm 20mm 18mm; }
+  h1 { font-size: 18pt; font-weight: 700; color: #111; margin: 14pt 0 6pt; padding-bottom: 6pt; border-bottom: 1.5pt solid #2563eb; break-after: avoid; }
+  h2 { font-size: 14pt; font-weight: 700; color: #111; margin: 12pt 0 5pt; padding-bottom: 4pt; border-bottom: 0.5pt solid #ccc; break-after: avoid; }
+  h3 { font-size: 12pt; font-weight: 700; color: #333; margin: 10pt 0 4pt; break-after: avoid; }
+  h4 { font-size: 11pt; font-weight: 700; font-style: italic; color: #333; margin: 8pt 0 3pt; break-after: avoid; }
+  p { margin: 3pt 0; text-align: left; line-height: 1.5; orphans: 3; widows: 3; }
+  ul, ol { padding-left: 20pt; margin: 3pt 0; }
+  li { margin: 2pt 0; break-inside: avoid; page-break-inside: avoid; }
+  table { border-collapse: collapse; width: 100%; margin: 6pt 0; break-inside: avoid; page-break-inside: avoid; }
+  th { background: #2563eb; color: white; padding: 5pt 8pt; text-align: left; font-weight: 600; font-size: 10pt; }
+  td { padding: 4pt 8pt; border: 0.5pt solid #d1d5db; font-size: 10pt; }
+  tr:nth-child(even) td { background: #f9fafb; }
+  tr { break-inside: avoid; page-break-inside: avoid; }
+  strong { font-weight: 700; }
+  em { font-style: italic; }
+  u { text-decoration: underline; }
+  a { color: #2563eb; text-decoration: underline; }
+  hr { border: none; border-top: 0.5pt solid #d1d5db; margin: 8pt 0; }
+  .docx-title { font-size: 24pt; text-align: center; font-weight: 700; color: #111; margin-bottom: 4pt; }
+  .docx-subtitle { text-align: center; color: #555; font-size: 11pt; margin-bottom: 14pt; }
+  blockquote { border-left: 3pt solid #2563eb; padding-left: 12pt; color: #555; margin: 6pt 0; }
+  @media print {
+    body { padding: 0; overflow: visible; }
+    h1, h2, h3, h4 { break-after: avoid; page-break-after: avoid; }
+    ul, ol, table, blockquote { break-inside: avoid; page-break-inside: avoid; }
+    li, tr { break-inside: avoid; page-break-inside: avoid; }
+    p { orphans: 3; widows: 3; }
+    thead { display: table-header-group; }
+  }
+`;
+
+async function docxToPdf(buffer) {
+  const htmlResult = await mammoth.convertToHtml({ buffer });
+  const bodyHtml = htmlResult.value || '<p>No content found.</p>';
+
+  const fullHtml = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>${DOCX_PDF_STYLES}</style>
+</head><body>${bodyHtml}</body></html>`;
+
+  return gotenbergChromium(Buffer.from(fullHtml, 'utf-8'), 'output.html');
+}
+
+// ============================================================
+// ENGINE: PPTX → PDF (via JSZip → HTML → Chromium)
+// ============================================================
+
+async function pptxToPdf(buffer) {
+  const html = await pptxToHtml(buffer);
+  const fullHtml = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; padding: 30px; }
+  .slide { border: 1px solid #ddd; border-radius: 6px; padding: 20px; margin: 12px 0; background: #fafafa; page-break-inside: avoid; break-inside: avoid; }
+  .slide-number { font-size: 10px; font-weight: 700; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .slide-content { font-size: 13px; line-height: 1.6; color: #222; }
+  @media print { body { padding: 0; } .slide { border: none; } }
+</style></head><body>${html.toString('utf-8')}</body></html>`;
+
+  return gotenbergChromium(Buffer.from(fullHtml, 'utf-8'), 'output.html');
 }
 
 // ============================================================
@@ -699,6 +778,12 @@ async function convertFile(fileBuffer, sourceFormat, targetFormat, filename, mim
       break;
     case 'markdown-to-pdf':
       resultBuffer = await markdownToPdf(fileBuffer);
+      break;
+    case 'docx-to-pdf':
+      resultBuffer = await docxToPdf(fileBuffer);
+      break;
+    case 'pptx-to-pdf':
+      resultBuffer = await pptxToPdf(fileBuffer);
       break;
     case 'json-to-pdf':
       resultBuffer = await jsonToPdf(fileBuffer);

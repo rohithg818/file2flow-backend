@@ -172,7 +172,7 @@ export const ConvertPage: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
         <input ref={fileInputRef} type="file" multiple onChange={handleFileInputChange} className="hidden"
-          accept=".docx,.doc,.pptx,.ppt,.xlsx,.xls,.json,.png,.jpg,.jpeg,.webp,.gif,.svg,.md,.markdown,.html,.htm,.txt,.csv" />
+          accept=".pdf,.docx,.doc,.pptx,.ppt,.xlsx,.xls,.json,.png,.jpg,.jpeg,.webp,.gif,.svg,.md,.markdown,.html,.htm,.txt,.csv" />
 
         {/* Email Verification Banner */}
         {user && user.emailVerified === false && (
@@ -251,31 +251,7 @@ export const ConvertPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Quick Examples */}
-            <div className="rounded-2xl p-6" style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="text-sm font-bold uppercase tracking-wider" style={{ color: '#64748B' }}>Try an example</h4>
-                <span className="text-sm" style={{ color: '#94A3B8' }}>Click to test</span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {EXAMPLE_FILES.map((ex) => (
-                  <button key={ex.name} onClick={() => handleLoadExample(ex)}
-                    className="p-4 rounded-xl text-left transition-all group flex items-start justify-between"
-                    style={{ border: '1px solid #E2E8F0', background: '#FAFBFC' }}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.background = '#EFF6FF'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.background = '#FAFBFC'; }}>
-                    <div className="min-w-0 pr-2">
-                      <p className="text-sm font-bold truncate" style={{ color: '#0F172A' }}>{ex.label}</p>
-                      <p className="text-xs line-clamp-1 mt-1" style={{ color: '#64748B' }}>{ex.desc}</p>
-                      <span className="inline-block text-xs font-mono uppercase mt-1.5" style={{ color: '#94A3B8' }}>
-                        .{ex.format} · {formatBytes(ex.size)}
-                      </span>
-                    </div>
-                    <Plus className="w-5 h-5 shrink-0 mt-0.5" style={{ color: '#94A3B8' }} />
-                  </button>
-                ))}
-              </div>
-            </div>
+
           </div>
         )}
 
@@ -483,95 +459,95 @@ export const ConvertPage: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Settings Toggle */}
-                  <button onClick={() => setShowSettings(!showSettings)}
-                    className="w-full flex items-center justify-between p-5 rounded-2xl transition-all"
-                    style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                    <div className="flex items-center gap-2.5">
-                      <Settings2 className="w-5 h-5" style={{ color: '#2563EB' }} />
-                      <span className="text-sm font-bold" style={{ color: '#0F172A' }}>Output Settings</span>
-                      <span className="text-xs" style={{ color: '#94A3B8' }}>
-                        {settings.pageSize.toUpperCase()} · {settings.orientation} · {settings.quality}
-                      </span>
-                    </div>
-                    {showSettings ? <ChevronUp className="w-5 h-5" style={{ color: '#94A3B8' }} /> : <ChevronDown className="w-5 h-5" style={{ color: '#94A3B8' }} />}
-                  </button>
+                  {/* Settings */}
+                  <div className="rounded-2xl overflow-hidden" style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                    <button onClick={() => setShowSettings(!showSettings)}
+                      className="w-full flex items-center justify-between p-5 transition-all">
+                      <div className="flex items-center gap-2.5">
+                        <Settings2 className="w-5 h-5" style={{ color: '#2563EB' }} />
+                        <span className="text-sm font-bold" style={{ color: '#0F172A' }}>Output Settings</span>
+                        <span className="text-xs" style={{ color: '#94A3B8' }}>
+                          {settings.pageSize.toUpperCase()} · {settings.orientation} · {settings.quality}
+                        </span>
+                      </div>
+                      {showSettings ? <ChevronUp className="w-5 h-5" style={{ color: '#94A3B8' }} /> : <ChevronDown className="w-5 h-5" style={{ color: '#94A3B8' }} />}
+                    </button>
 
-                  {/* Collapsible Settings */}
-                  <AnimatePresence>
-                    {showSettings && (
-                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden rounded-2xl" style={{ background: '#FFFFFF', border: '1px solid #E2E8F0' }}>
-                        <div className="p-6 space-y-5">
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                            <div>
-                              <label className="block text-sm font-bold mb-1.5" style={{ color: '#334155' }}>Page Size</label>
-                              <div className="flex gap-1.5">
-                                {(['a4', 'letter', 'legal'] as const).map((s) => (
-                                  <button key={s} onClick={() => updateSettings({ pageSize: s })}
-                                    className="flex-1 py-2 rounded-lg text-sm font-bold capitalize transition-all"
-                                    style={{ background: settings.pageSize === s ? '#2563EB' : '#F1F5F9', color: settings.pageSize === s ? '#fff' : '#64748B' }}>
-                                    {s}
-                                  </button>
-                                ))}
+                    <AnimatePresence>
+                      {showSettings && (
+                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden">
+                          <div className="px-6 pb-6 space-y-5 border-t" style={{ borderColor: '#F1F5F9' }}>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-5">
+                              <div>
+                                <label className="block text-sm font-bold mb-1.5" style={{ color: '#334155' }}>Page Size</label>
+                                <div className="flex gap-1.5">
+                                  {(['a4', 'letter', 'legal'] as const).map((s) => (
+                                    <button key={s} onClick={() => updateSettings({ pageSize: s })}
+                                      className="flex-1 py-2 rounded-lg text-sm font-bold capitalize transition-all"
+                                      style={{ background: settings.pageSize === s ? '#2563EB' : '#F1F5F9', color: settings.pageSize === s ? '#fff' : '#64748B' }}>
+                                      {s}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-sm font-bold mb-1.5" style={{ color: '#334155' }}>Orientation</label>
+                                <div className="flex gap-1.5">
+                                  {(['portrait', 'landscape'] as const).map((o) => (
+                                    <button key={o} onClick={() => updateSettings({ orientation: o })}
+                                      className="flex-1 py-2 rounded-lg text-sm font-bold capitalize transition-all"
+                                      style={{ background: settings.orientation === o ? '#2563EB' : '#F1F5F9', color: settings.orientation === o ? '#fff' : '#64748B' }}>
+                                      {o}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-sm font-bold mb-1.5" style={{ color: '#334155' }}>Margins</label>
+                                <div className="flex gap-1.5">
+                                  {(['normal', 'narrow', 'wide'] as const).map((m) => (
+                                    <button key={m} onClick={() => updateSettings({ margin: m })}
+                                      className="flex-1 py-2 rounded-lg text-sm font-bold capitalize transition-all"
+                                      style={{ background: settings.margin === m ? '#2563EB' : '#F1F5F9', color: settings.margin === m ? '#fff' : '#64748B' }}>
+                                      {m}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-sm font-bold mb-1.5" style={{ color: '#334155' }}>Quality</label>
+                                <div className="flex gap-1.5">
+                                  {(['high', 'standard'] as const).map((q) => (
+                                    <button key={q} onClick={() => updateSettings({ quality: q })}
+                                      className="flex-1 py-2 rounded-lg text-sm font-bold capitalize transition-all"
+                                      style={{ background: settings.quality === q ? '#2563EB' : '#F1F5F9', color: settings.quality === q ? '#fff' : '#64748B' }}>
+                                      {q}
+                                    </button>
+                                  ))}
+                                </div>
                               </div>
                             </div>
-                            <div>
-                              <label className="block text-sm font-bold mb-1.5" style={{ color: '#334155' }}>Orientation</label>
-                              <div className="flex gap-1.5">
-                                {(['portrait', 'landscape'] as const).map((o) => (
-                                  <button key={o} onClick={() => updateSettings({ orientation: o })}
-                                    className="flex-1 py-2 rounded-lg text-sm font-bold capitalize transition-all"
-                                    style={{ background: settings.orientation === o ? '#2563EB' : '#F1F5F9', color: settings.orientation === o ? '#fff' : '#64748B' }}>
-                                    {o}
-                                  </button>
-                                ))}
+                            <div className="flex items-center gap-4">
+                              <div className="flex-1">
+                                <label className="block text-sm font-bold mb-1.5" style={{ color: '#334155' }}>Watermark</label>
+                                <input type="text" placeholder="e.g. DRAFT" value={settings.watermarkText || ''}
+                                  onChange={(e) => updateSettings({ watermarkText: e.target.value })}
+                                  className="w-full px-4 py-2 rounded-lg border text-sm focus:outline-none focus:ring-1"
+                                  style={{ borderColor: '#E2E8F0', background: '#FAFBFC', color: '#0F172A', '--tw-ring-color': '#2563EB40' } as any} />
                               </div>
-                            </div>
-                            <div>
-                              <label className="block text-sm font-bold mb-1.5" style={{ color: '#334155' }}>Margins</label>
-                              <div className="flex gap-1.5">
-                                {(['normal', 'narrow', 'wide'] as const).map((m) => (
-                                  <button key={m} onClick={() => updateSettings({ margin: m })}
-                                    className="flex-1 py-2 rounded-lg text-sm font-bold capitalize transition-all"
-                                    style={{ background: settings.margin === m ? '#2563EB' : '#F1F5F9', color: settings.margin === m ? '#fff' : '#64748B' }}>
-                                    {m}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                            <div>
-                              <label className="block text-sm font-bold mb-1.5" style={{ color: '#334155' }}>Quality</label>
-                              <div className="flex gap-1.5">
-                                {(['high', 'standard'] as const).map((q) => (
-                                  <button key={q} onClick={() => updateSettings({ quality: q })}
-                                    className="flex-1 py-2 rounded-lg text-sm font-bold capitalize transition-all"
-                                    style={{ background: settings.quality === q ? '#2563EB' : '#F1F5F9', color: settings.quality === q ? '#fff' : '#64748B' }}>
-                                    {q}
-                                  </button>
-                                ))}
-                              </div>
+                              <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold pt-4" style={{ color: '#334155' }}>
+                                <input type="checkbox" checked={settings.addPageNumbers}
+                                  onChange={(e) => updateSettings({ addPageNumbers: e.target.checked })}
+                                  className="rounded" style={{ accentColor: '#2563EB' }} />
+                                Page numbers
+                              </label>
                             </div>
                           </div>
-                          <div className="flex items-center gap-4">
-                            <div className="flex-1">
-                              <label className="block text-sm font-bold mb-1.5" style={{ color: '#334155' }}>Watermark</label>
-                              <input type="text" placeholder="e.g. DRAFT" value={settings.watermarkText || ''}
-                                onChange={(e) => updateSettings({ watermarkText: e.target.value })}
-                                className="w-full px-4 py-2 rounded-lg border text-sm focus:outline-none focus:ring-1"
-                                style={{ borderColor: '#E2E8F0', background: '#FAFBFC', color: '#0F172A', '--tw-ring-color': '#2563EB40' } as any} />
-                            </div>
-                            <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold pt-4" style={{ color: '#334155' }}>
-                              <input type="checkbox" checked={settings.addPageNumbers}
-                                onChange={(e) => updateSettings({ addPageNumbers: e.target.checked })}
-                                className="rounded" style={{ accentColor: '#2563EB' }} />
-                              Page numbers
-                            </label>
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </div>
 
                 {/* RIGHT: Preview + AI */}
