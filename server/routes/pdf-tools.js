@@ -171,7 +171,7 @@ router.post('/rotate', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-    const rotation = parseInt(req.body.rotation, 10);
+    const rotation = parseInt(req.body.rotation || req.body.angle, 10);
     if (![90, 180, 270].includes(rotation)) {
       return res.status(400).json({ error: 'Rotation must be 90, 180, or 270' });
     }
