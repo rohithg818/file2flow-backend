@@ -23,6 +23,8 @@ function getOutputExt(fmt: OutputFormat): string {
     case 'html': return 'html';
     case 'md': return 'md';
     case 'txt': return 'txt';
+    case 'xlsx': return 'xlsx';
+    case 'csv': return 'csv';
     default: return 'pdf';
   }
 }
@@ -404,13 +406,16 @@ export const ConvertPage: React.FC = () => {
                     <div className="flex items-center gap-4 mb-5">
                       <span className="text-sm font-bold" style={{ color: '#334155' }}>Output:</span>
                       <div className="flex gap-2">
-                        {(['pdf', 'html', 'md', 'txt', 'docx'] as const)
+                        {(['pdf', 'html', 'md', 'txt', 'docx', 'xlsx', 'csv'] as const)
                           .filter((fmt) => {
                             const inputFmt = currentTargetFile.format;
                             if (fmt === inputFmt) return false;
                             if (fmt === 'md' && inputFmt === 'markdown') return false;
                             if (fmt === 'txt' && inputFmt === 'txt') return false;
                             if (fmt === 'html' && inputFmt === 'html') return false;
+                            if (fmt === 'xlsx' && (inputFmt === 'xlsx' || inputFmt === 'csv')) return false;
+                            if (fmt === 'csv' && inputFmt === 'csv') return false;
+                            if (fmt === 'docx' && inputFmt === 'docx') return false;
                             return true;
                           })
                           .map((fmt) => (

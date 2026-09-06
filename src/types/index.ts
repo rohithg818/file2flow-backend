@@ -10,7 +10,7 @@ export type SupportedFormat =
   | 'csv'
   | 'pdf';
 
-export type OutputFormat = 'pdf' | 'docx' | 'html' | 'txt' | 'md';
+export type OutputFormat = 'pdf' | 'docx' | 'html' | 'txt' | 'md' | 'xlsx' | 'csv';
 
 export type ConversionStatus = 'idle' | 'uploading' | 'converting' | 'completed' | 'error';
 

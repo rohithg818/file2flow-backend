@@ -17,6 +17,53 @@ const API_URL = (import.meta.env.VITE_API_URL || '').replace(/^\uFEFF/, '');
 const IS_PROD = !import.meta.env.DEV;
 
 // ============================================================
+// BACKEND HUB CONVERTER (any format → any format via /api/convert/file)
+// ============================================================
+
+async function convertViaBackend(
+  fileItem: FileItem,
+  sourceFormat: string,
+  targetFormat: string,
+  onProgress?: (progress: number, stage: string) => void
+): Promise<{ blob: Blob; url: string; size: number; pageCount: number } | null> {
+  const startTime = performance.now();
+
+  try {
+    onProgress?.(10, 'Connecting to backend...');
+
+    const formData = new FormData();
+    formData.append('file', fileItem.file, fileItem.name);
+    formData.append('targetFormat', targetFormat);
+
+    onProgress?.(25, 'Converting...');
+
+    const response = await fetch(`${API_URL}/api/convert/file`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Conversion error' }));
+      throw new Error(error.error || 'Conversion failed');
+    }
+
+    onProgress?.(85, 'Downloading...');
+
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const elapsed = Math.round(performance.now() - startTime);
+    const pageCount = Math.max(1, Math.ceil(blob.size / 50000));
+
+    onProgress?.(100, 'Done');
+
+    return { blob, url: blobUrl, size: blob.size, pageCount };
+  } catch (err) {
+    console.warn('Backend conversion unavailable:', err);
+    return null;
+  }
+}
+
+// ============================================================
 // GOTENBERG CONVERTER (DOCX/XLSX/PPTX/HTML → PDF via LibreOffice/Chromium)
 // ============================================================
 
@@ -283,44 +330,51 @@ export async function convertFile(
 ): Promise<ConversionResult> {
   const startTime = performance.now();
 
-  // Try Gotenberg first for PDF conversions of office documents
-  if (settings.outputFormat === 'pdf') {
-    const gotenbergResult = await convertViaGotenberg(fileItem, settings, onProgress);
-    if (gotenbergResult) return gotenbergResult;
+  // Map frontend format names to backend format names
+  const formatMap: Record<string, string> = {
+    'markdown': 'md',
+    'docx': 'docx',
+    'xlsx': 'xlsx',
+    'csv': 'csv',
+    'pptx': 'pptx',
+    'html': 'html',
+    'md': 'md',
+    'txt': 'txt',
+    'json': 'json',
+    'pdf': 'pdf',
+    'image': 'image',
+  };
+
+  const sourceFormat = formatMap[fileItem.format] || fileItem.format;
+  const targetFormat = settings.outputFormat;
+
+  // If same format, just return the file as-is
+  if (sourceFormat === targetFormat) {
+    const blob = fileItem.file;
+    const blobUrl = URL.createObjectURL(blob);
+    const elapsed = Math.round(performance.now() - startTime);
+    return { blob, blobUrl, size: blob.size, pageCount: 1, conversionTimeMs: elapsed };
   }
 
-  // Try Python engine next (dev only)
-  if (settings.outputFormat === 'pdf' && !IS_PROD) {
-    const engineResult = await convertViaPythonEngine(fileItem, settings, onProgress);
-    if (engineResult) return engineResult;
-  }
-
-  onProgress?.(10, 'Reading file...');
-
-  if (settings.outputFormat === 'pdf') {
-    try {
-      if (fileItem.format === 'docx') {
-        onProgress?.(20, 'Rendering DOCX...');
-        const r = await docxToPdf(fileItem.file, settings, onProgress);
-        const elapsed = Math.round(performance.now() - startTime);
-        return { blob: r.blob, blobUrl: r.url, size: r.size, pageCount: r.pageCount, conversionTimeMs: elapsed };
-      }
-      onProgress?.(20, 'Extracting content...');
-      const html = await convertToHtml(fileItem, settings);
-      onProgress?.(50, 'Rendering PDF...');
-      const r = await htmlToPdf(html, settings, onProgress);
+  // Try backend hub conversion (any-to-any)
+  onProgress?.(10, 'Connecting to converter...');
+  try {
+    const result = await convertViaBackend(fileItem, sourceFormat, targetFormat, onProgress);
+    if (result) {
       const elapsed = Math.round(performance.now() - startTime);
-      return { blob: r.blob, blobUrl: r.url, size: r.size, pageCount: r.pageCount, conversionTimeMs: elapsed };
-    } catch (pdfErr) {
-      console.error('PDF conversion error:', pdfErr);
-      throw new Error(`PDF conversion failed: ${pdfErr instanceof Error ? pdfErr.message : 'Unknown error'}`);
+      return { blob: result.blob, blobUrl: result.url, size: result.size, pageCount: result.pageCount, conversionTimeMs: elapsed };
     }
+  } catch (err) {
+    console.warn('Backend conversion failed, falling back to client-side:', err);
   }
+
+  // Fallback: client-side conversion for non-PDF
+  onProgress?.(10, 'Reading file...');
 
   let outputContent: string;
   let mimeType: string;
 
-  switch (settings.outputFormat) {
+  switch (targetFormat) {
     case 'html': {
       outputContent = await convertToHtml(fileItem, settings);
       mimeType = 'text/html';

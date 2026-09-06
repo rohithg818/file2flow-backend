@@ -55,6 +55,8 @@ function getOutputBadgeColor(format: OutputFormat) {
     case 'html': return { bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-200' };
     case 'md': return { bg: 'bg-indigo-50', text: 'text-indigo-600', border: 'border-indigo-200' };
     case 'txt': return { bg: 'bg-slate-50', text: 'text-slate-600', border: 'border-slate-200' };
+    case 'xlsx': return { bg: 'bg-green-50', text: 'text-green-600', border: 'border-green-200' };
+    case 'csv': return { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-200' };
     default: return { bg: 'bg-slate-50', text: 'text-slate-600', border: 'border-slate-200' };
   }
 }

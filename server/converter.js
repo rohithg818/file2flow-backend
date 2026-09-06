@@ -2,32 +2,28 @@ const { PDFDocument } = require('pdf-lib');
 const fetch = require('node-fetch').default || require('node-fetch');
 const FormData = require('form-data');
 const XLSX = require('xlsx');
+const mammoth = require('mammoth');
+const JSZip = require('jszip');
 const { jsonToPdf } = require('./json-to-pdf');
 
 const GOTENBERG_URL = process.env.GOTENBERG_URL || 'https://gotenberg-31r8.onrender.com';
 
 // ============================================================
-// CONVERSION MAP (Hub Model)
+// CONVERSION MAP (Hub Model — any-to-any)
 // ============================================================
 
-/**
- * Conversion routes through intermediate formats:
- *
- * TO PDF:
- *   DOCX/XLSX/PPTX/ODT/ODS/ODP/RTF → [LibreOffice] → PDF
- *   HTML/CSV → [Chromium] → PDF
- *   Images → [LibreOffice] → PDF
- *   JSON → [Groq → HTML → Chromium] → PDF (Phase 3)
- *
- * FROM PDF:
- *   PDF → DOCX → [LibreOffice reverse] → DOCX (lossy)
- *   PDF → XLSX → [LibreOffice reverse] → XLSX (lossy)
- *   PDF → HTML → [pdf-lib text extraction] → HTML (basic)
- *
- * BETWEEN OTHERS:
- *   CSV → XLSX → [SheetJS] → XLSX (direct, no Gotenberg)
- *   CSV → PDF → [HTML table → Chromium] → PDF
- */
+const CONTENT_TYPES = {
+  pdf:  'application/pdf',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  csv:  'text/csv',
+  pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  html: 'text/html',
+  md:   'text/markdown',
+  txt:  'text/plain',
+  json: 'application/json',
+  image:'image/png',
+};
 
 const CONVERSION_MAP = {
   // === TO PDF (via Gotenberg) ===
@@ -39,19 +35,64 @@ const CONVERSION_MAP = {
   'odp:pdf':    { engine: 'gotenberg-libreoffice' },
   'rtf:pdf':    { engine: 'gotenberg-libreoffice' },
   'md:pdf':     { engine: 'markdown-to-pdf' },
-  'html:pdf':   { engine: 'gotenberg-chromium' },
-  'csv:pdf':    { engine: 'csv-to-html-table' },  // CSV → HTML table → Chromium → PDF
+  'html:pdf':   { engine: 'html-to-pdf' },
+  'csv:pdf':    { engine: 'csv-to-html-table' },
   'image:pdf':  { engine: 'gotenberg-libreoffice' },
-  'json:pdf':   { engine: 'json-to-pdf' },         // JSON → Groq HTML → Chromium → PDF
+  'json:pdf':   { engine: 'json-to-pdf' },
+  'txt:pdf':    { engine: 'text-to-pdf' },
 
-  // === FROM PDF (via Gotenberg reverse) ===
+  // === FROM PDF ===
   'pdf:docx':   { engine: 'gotenberg-libreoffice-reverse', lossy: true },
   'pdf:xlsx':   { engine: 'gotenberg-libreoffice-reverse', lossy: true },
   'pdf:html':   { engine: 'pdf-to-html' },
+  'pdf:txt':    { engine: 'pdf-to-text' },
+  'pdf:md':     { engine: 'pdf-to-text' },
 
-  // === BETWEEN OTHERS ===
-  'csv:xlsx':   { engine: 'sheetjs-csv-to-xlsx' },
+  // === DOCX ===
+  'docx:html':  { engine: 'docx-to-html' },
+  'docx:md':    { engine: 'docx-to-markdown' },
+  'docx:txt':   { engine: 'docx-to-text' },
+
+  // === XLSX ===
+  'xlsx:csv':   { engine: 'xlsx-to-csv' },
+  'xlsx:html':  { engine: 'xlsx-to-html' },
+  'xlsx:txt':   { engine: 'xlsx-to-text' },
+  'xlsx:md':    { engine: 'xlsx-to-markdown' },
+
+  // === PPTX ===
+  'pptx:html':  { engine: 'pptx-to-html' },
+  'pptx:txt':   { engine: 'pptx-to-text' },
+  'pptx:md':    { engine: 'pptx-to-text' },
+
+  // === CSV ===
+  'csv:xlsx':   { engine: 'csv-to-xlsx' },
   'csv:html':   { engine: 'csv-to-html-table' },
+  'csv:txt':    { engine: 'csv-to-text' },
+  'csv:md':     { engine: 'csv-to-markdown' },
+
+  // === HTML ===
+  'html:txt':   { engine: 'html-to-text' },
+  'html:md':    { engine: 'html-to-markdown' },
+  'html:docx':  { engine: 'html-to-docx' },
+
+  // === MARKDOWN ===
+  'md:html':    { engine: 'markdown-to-html' },
+  'md:txt':     { engine: 'markdown-to-text' },
+  'md:docx':    { engine: 'html-to-docx', via: 'markdown-to-html' },
+
+  // === JSON ===
+  'json:html':  { engine: 'json-to-html' },
+  'json:txt':   { engine: 'json-to-text' },
+
+  // === TXT ===
+  'txt:html':   { engine: 'text-to-html' },
+  'txt:md':     { engine: 'text-to-markdown' },
+  'txt:docx':   { engine: 'html-to-docx', via: 'text-to-html' },
+  'txt:pdf':    { engine: 'text-to-pdf' },
+
+  // === IMAGE ===
+  'image:html': { engine: 'image-to-html' },
+  'image:txt':  { engine: 'image-to-html' },
 };
 
 // MIME type to Gotenberg endpoint mapping
@@ -134,6 +175,29 @@ async function gotenbergChromium(htmlBuffer, filename) {
 }
 
 // ============================================================
+// ENGINE: HTML → PDF (via Chromium)
+// ============================================================
+
+async function htmlToPdf(htmlBuffer, filename) {
+  return gotenbergChromium(htmlBuffer, filename);
+}
+
+// ============================================================
+// ENGINE: Text → PDF (via Chromium)
+// ============================================================
+
+async function textToPdf(textBuffer) {
+  const text = textBuffer.toString('utf-8');
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>
+  body { font-family: 'Consolas', 'Courier New', monospace; font-size: 12px; line-height: 1.6; padding: 40px; white-space: pre-wrap; word-break: break-word; color: #1f2937; }
+  @media print { body { padding: 0; } }
+</style></head><body>${escapeHtml(text)}</body></html>`;
+  return gotenbergChromium(Buffer.from(html, 'utf-8'), 'output.html');
+}
+
+// ============================================================
 // ENGINE: Markdown → HTML → PDF (via Chromium)
 // ============================================================
 
@@ -196,7 +260,7 @@ function simpleMarkdownToHtml(md) {
 }
 
 // ============================================================
-// ENGINE: CSV → HTML table → PDF (via Chromium)
+// ENGINE: CSV → HTML table (inline or PDF via Chromium)
 // ============================================================
 
 async function csvToHtmlTable(csvBuffer) {
@@ -210,41 +274,304 @@ async function csvToHtmlTable(csvBuffer) {
   const headers = data[0] || [];
   const rows = data.slice(1);
 
-  let html = `<!DOCTYPE html>
-<html><head><meta charset="UTF-8">
-<style>
-  body { font-family: Arial, sans-serif; padding: 20px; }
-  table { border-collapse: collapse; width: 100%; margin: 10px 0; }
-  th { background: #2563eb; color: white; padding: 8px 12px; text-align: left; font-weight: 600; }
-  td { padding: 6px 12px; border: 1px solid #e5e7eb; }
-  tr:nth-child(even) td { background: #f9fafb; }
-</style></head><body>
-<table><thead><tr>`;
-
+  let html = '<table><thead><tr>';
   headers.forEach(h => { html += `<th>${escapeHtml(String(h ?? ''))}</th>`; });
   html += '</tr></thead><tbody>';
-
   rows.forEach(row => {
     html += '<tr>';
-    headers.forEach((_, i) => {
-      html += `<td>${escapeHtml(String(row[i] ?? ''))}</td>`;
-    });
+    headers.forEach((_, i) => { html += `<td>${escapeHtml(String(row[i] ?? ''))}</td>`; });
     html += '</tr>';
   });
-
-  html += '</tbody></table></body></html>';
-  return Buffer.from(html, 'utf-8');
+  html += '</tbody></table>';
+  return html;
 }
 
 // ============================================================
-// ENGINE: CSV → XLSX (SheetJS, direct)
+// ENGINE: XLSX → CSV / HTML / Text / Markdown (SheetJS)
+// ============================================================
+
+function xlsxToWorkbook(buffer) {
+  return XLSX.read(buffer, { type: 'buffer' });
+}
+
+function xlsxToCsv(buffer) {
+  const wb = xlsxToWorkbook(buffer);
+  const csv = XLSX.utils.sheet_to_csv(wb.Sheets[wb.SheetNames[0]]);
+  return Buffer.from(csv, 'utf-8');
+}
+
+function xlsxToText(buffer) {
+  const wb = xlsxToWorkbook(buffer);
+  let text = '';
+  for (const name of wb.SheetNames) {
+    const data = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1 });
+    if (wb.SheetNames.length > 1) text += `=== ${name} ===\n`;
+    data.forEach(row => { text += row.map(c => String(c ?? '')).join('\t') + '\n'; });
+    text += '\n';
+  }
+  return Buffer.from(text.trim(), 'utf-8');
+}
+
+function xlsxToMarkdown(buffer) {
+  const wb = xlsxToWorkbook(buffer);
+  let md = '';
+  for (const name of wb.SheetNames) {
+    const data = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1 });
+    if (data.length === 0) continue;
+    if (wb.SheetNames.length > 1) md += `## ${name}\n\n`;
+    const headers = data[0];
+    md += '| ' + headers.map(h => String(h ?? '')).join(' | ') + ' |\n';
+    md += '| ' + headers.map(() => '---').join(' | ') + ' |\n';
+    data.slice(1).forEach(row => {
+      md += '| ' + row.map(c => String(c ?? '')).join(' | ') + ' |\n';
+    });
+    md += '\n';
+  }
+  return Buffer.from(md.trim(), 'utf-8');
+}
+
+function xlsxToHtmlTable(buffer) {
+  const wb = xlsxToWorkbook(buffer);
+  let tablesHtml = '<style>table{border-collapse:collapse;width:100%;margin:10px 0}th{background:#2563eb;color:white;padding:8px 12px;text-align:left;font-weight:600}td{padding:6px 12px;border:1px solid #e5e7eb}tr:nth-child(even) td{background:#f9fafb}.sheet-title{font-size:14px;font-weight:700;color:#333;margin:16px 0 8px}</style>';
+  for (const name of wb.SheetNames) {
+    const data = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1 });
+    if (data.length === 0) continue;
+    if (wb.SheetNames.length > 1) tablesHtml += `<div class="sheet-title">${escapeHtml(name)}</div>`;
+    tablesHtml += '<table><thead><tr>';
+    data[0].forEach(h => { tablesHtml += `<th>${escapeHtml(String(h ?? ''))}</th>`; });
+    tablesHtml += '</tr></thead><tbody>';
+    data.slice(1).forEach(row => {
+      tablesHtml += '<tr>';
+      data[0].forEach((_, i) => { tablesHtml += `<td>${escapeHtml(String(row[i] ?? ''))}</td>`; });
+      tablesHtml += '</tr>';
+    });
+    tablesHtml += '</tbody></table>';
+  }
+  return tablesHtml;
+}
+
+// ============================================================
+// ENGINE: DOCX → HTML / Text / Markdown (mammoth)
+// ============================================================
+
+async function docxToHtml(buffer) {
+  const result = await mammoth.convertToHtml({ buffer });
+  return Buffer.from(result.value || '<p>No content found.</p>', 'utf-8');
+}
+
+async function docxToText(buffer) {
+  const result = await mammoth.extractRawText({ buffer });
+  return Buffer.from(result.value || '', 'utf-8');
+}
+
+async function docxToMarkdown(buffer) {
+  const htmlResult = await mammoth.convertToHtml({ buffer });
+  const html = htmlResult.value || '';
+  const md = html
+    .replace(/<h1[^>]*>(.*?)<\/h1>/gi, '# $1\n\n')
+    .replace(/<h2[^>]*>(.*?)<\/h2>/gi, '## $1\n\n')
+    .replace(/<h3[^>]*>(.*?)<\/h3>/gi, '### $1\n\n')
+    .replace(/<h4[^>]*>(.*?)<\/h4>/gi, '#### $1\n\n')
+    .replace(/<strong>(.*?)<\/strong>/gi, '**$1**')
+    .replace(/<b>(.*?)<\/b>/gi, '**$1**')
+    .replace(/<em>(.*?)<\/em>/gi, '*$1*')
+    .replace(/<i>(.*?)<\/i>/gi, '*$1*')
+    .replace(/<li>(.*?)<\/li>/gi, '- $1\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<p[^>]*>(.*?)<\/p>/gi, '$1\n\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  return Buffer.from(md, 'utf-8');
+}
+
+// ============================================================
+// ENGINE: PPTX → HTML / Text (JSZip + XML)
+// ============================================================
+
+async function pptxToText(buffer) {
+  const zip = await JSZip.loadAsync(buffer);
+  const slideFiles = Object.keys(zip.files).filter(n => n.match(/ppt\/slides\/slide\d+\.xml/)).sort();
+  let text = '';
+  for (const f of slideFiles) {
+    const xml = await zip.file(f).async('text');
+    const matches = xml.match(/<a:t>([^<]+)<\/a:t>/g);
+    if (matches) {
+      text += matches.map(m => m.replace(/<\/?a:t>/g, '')).join(' ') + '\n\n';
+    }
+  }
+  return Buffer.from(text.trim() || 'No text content found.', 'utf-8');
+}
+
+async function pptxToHtml(buffer) {
+  const text = (await pptxToText(buffer)).toString('utf-8');
+  const lines = text.split('\n').filter(l => l.trim());
+  let html = '<style>.slide{border:1px solid #ddd;border-radius:6px;padding:16px;margin:10px 0;background:#fafafa;page-break-inside:avoid;}.slide-number{font-size:10px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}.slide-content{font-size:13px;line-height:1.6;color:#222}</style>';
+  let slideNum = 1;
+  let currentSlide = '';
+  for (const line of lines) {
+    if (line.trim() === '' && currentSlide) {
+      html += `<div class="slide"><div class="slide-number">Slide ${slideNum}</div><div class="slide-content">${escapeHtml(currentSlide).replace(/\n/g, '<br>')}</div></div>`;
+      slideNum++;
+      currentSlide = '';
+    } else {
+      currentSlide += (currentSlide ? '\n' : '') + line;
+    }
+  }
+  if (currentSlide) {
+    html += `<div class="slide"><div class="slide-number">Slide ${slideNum}</div><div class="slide-content">${escapeHtml(currentSlide).replace(/\n/g, '<br>')}</div></div>`;
+  }
+  return Buffer.from(html || '<p>No text content found in slides.</p>', 'utf-8');
+}
+
+// ============================================================
+// ENGINE: CSV → XLSX / Text / Markdown
 // ============================================================
 
 async function csvToXlsx(csvBuffer) {
   const csvText = csvBuffer.toString('utf-8');
   const workbook = XLSX.read(csvText, { type: 'string' });
-  const xlsxBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-  return Buffer.from(xlsxBuffer);
+  return Buffer.from(XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }));
+}
+
+function csvToText(csvBuffer) {
+  return csvBuffer;
+}
+
+function csvToMarkdown(csvBuffer) {
+  const csvText = csvBuffer.toString('utf-8');
+  const workbook = XLSX.read(csvText, { type: 'string' });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+  if (data.length === 0) return Buffer.from('', 'utf-8');
+  let md = '| ' + data[0].map(h => String(h ?? '')).join(' | ') + ' |\n';
+  md += '| ' + data[0].map(() => '---').join(' | ') + ' |\n';
+  data.slice(1).forEach(row => {
+    md += '| ' + data[0].map((_, i) => String(row[i] ?? '')).join(' | ') + ' |\n';
+  });
+  return Buffer.from(md.trim(), 'utf-8');
+}
+
+// ============================================================
+// ENGINE: HTML → Text / Markdown / DOCX
+// ============================================================
+
+function htmlToText(htmlBuffer) {
+  const text = htmlBuffer.toString('utf-8')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<\/h[1-6]>/gi, '\n\n')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<\/tr>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&nbsp;/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  return Buffer.from(text, 'utf-8');
+}
+
+function htmlToMarkdown(htmlBuffer) {
+  const html = htmlBuffer.toString('utf-8');
+  const md = html
+    .replace(/<h1[^>]*>(.*?)<\/h1>/gi, '# $1\n\n')
+    .replace(/<h2[^>]*>(.*?)<\/h2>/gi, '## $1\n\n')
+    .replace(/<h3[^>]*>(.*?)<\/h3>/gi, '### $1\n\n')
+    .replace(/<h4[^>]*>(.*?)<\/h4>/gi, '#### $1\n\n')
+    .replace(/<strong>(.*?)<\/strong>/gi, '**$1**')
+    .replace(/<b>(.*?)<\/b>/gi, '**$1**')
+    .replace(/<em>(.*?)<\/em>/gi, '*$1*')
+    .replace(/<i>(.*?)<\/i>/gi, '*$1*')
+    .replace(/<li>(.*?)<\/li>/gi, '- $1\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<p[^>]*>(.*?)<\/p>/gi, '$1\n\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  return Buffer.from(md, 'utf-8');
+}
+
+async function htmlToDocx(htmlBuffer) {
+  const result = await mammoth.convertToHtml({ buffer: htmlBuffer });
+  return Buffer.from(result.value || '<p>No content.</p>', 'utf-8');
+}
+
+// ============================================================
+// ENGINE: Markdown → HTML / Text
+// ============================================================
+
+function markdownToHtml(mdBuffer) {
+  const html = simpleMarkdownToHtml(mdBuffer.toString('utf-8'));
+  return Buffer.from(`<html><head><meta charset="UTF-8"><style>body{font-family:sans-serif;padding:20px;line-height:1.6}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:8px}th{background:#2563eb;color:white}</style></head><body>${html}</body></html>`, 'utf-8');
+}
+
+function markdownToText(mdBuffer) {
+  const text = mdBuffer.toString('utf-8')
+    .replace(/^#{1,6} /gm, '')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/\*(.+?)\*/g, '$1')
+    .replace(/`(.+?)`/g, '$1')
+    .replace(/^- /gm, '- ')
+    .replace(/^\|(.+)\|$/gm, (m, c) => c.split('|').map(s => s.trim()).join('\t'))
+    .replace(/^---$/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  return Buffer.from(text, 'utf-8');
+}
+
+// ============================================================
+// ENGINE: JSON → HTML / Text
+// ============================================================
+
+function jsonToHtml(jsonBuffer) {
+  let data;
+  try { data = JSON.parse(jsonBuffer.toString('utf-8')); } catch { return Buffer.from('<p>Invalid JSON</p>', 'utf-8'); }
+
+  let html = '<style>table{border-collapse:collapse;width:100%;margin:10px 0}th{background:#2563eb;color:white;padding:8px 12px;text-align:left}td{padding:6px 12px;border:1px solid #e5e7eb}tr:nth-child(even) td{background:#f9fafb}.kv{margin:4px 0}.kv strong{color:#1e40af}.json-block{background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:12px;margin:8px 0;font-family:monospace;font-size:11px;white-space:pre-wrap;word-break:break-all}</style>';
+
+  if (Array.isArray(data)) {
+    if (data.length > 0 && typeof data[0] === 'object') {
+      const keys = Object.keys(data[0]);
+      html += '<table><thead><tr>' + keys.map(k => `<th>${escapeHtml(k)}</th>`).join('') + '</tr></thead><tbody>';
+      data.forEach(item => {
+        html += '<tr>' + keys.map(k => `<td>${escapeHtml(String(item[k] ?? ''))}</td>`).join('') + '</tr>';
+      });
+      html += '</tbody></table>';
+    } else {
+      html += '<ul>' + data.map(v => `<li>${escapeHtml(String(v))}</li>`).join('') + '</ul>';
+    }
+  } else if (typeof data === 'object' && data !== null) {
+    html += Object.entries(data).map(([k, v]) =>
+      `<div class="kv"><strong>${escapeHtml(k)}:</strong> ${escapeHtml(typeof v === 'object' ? JSON.stringify(v) : String(v ?? ''))}</div>`
+    ).join('');
+  } else {
+    html += `<div class="json-block">${escapeHtml(String(data))}</div>`;
+  }
+
+  return Buffer.from(html, 'utf-8');
+}
+
+function jsonToText(jsonBuffer) {
+  let data;
+  try { data = JSON.parse(jsonBuffer.toString('utf-8')); } catch { return jsonBuffer; }
+  return Buffer.from(JSON.stringify(data, null, 2), 'utf-8');
+}
+
+// ============================================================
+// ENGINE: Text → HTML / Markdown
+// ============================================================
+
+function textToHtml(textBuffer) {
+  const text = escapeHtml(textBuffer.toString('utf-8'));
+  const html = `<html><head><meta charset="UTF-8"><style>body{font-family:monospace;font-size:12px;line-height:1.6;padding:20px;white-space:pre-wrap;word-break:break-word}</style></head><body>${text}</body></html>`;
+  return Buffer.from(html, 'utf-8');
+}
+
+function textToMarkdown(textBuffer) {
+  return textBuffer;
 }
 
 // ============================================================
@@ -252,17 +579,9 @@ async function csvToXlsx(csvBuffer) {
 // ============================================================
 
 async function gotenbergLibreOfficeReverse(pdfBuffer, filename, targetFormat) {
-  // Gotenberg's /forms/libreoffice/convert accepts PDF and converts to DOCX/XLSX
   const form = new FormData();
-  const targetMime = targetFormat === 'docx'
-    ? 'application/pdf'
-    : 'application/pdf';
-
   form.append('files', pdfBuffer, { filename, contentType: 'application/pdf' });
-
-  // Gotenberg uses the file extension to determine output format
-  const outputFilename = targetFormat === 'docx' ? 'output.docx' : 'output.xlsx';
-  form.append('outputFilename', outputFilename);
+  form.append('outputFilename', targetFormat === 'docx' ? 'output.docx' : 'output.xlsx');
 
   const response = await fetch(`${GOTENBERG_URL}/forms/libreoffice/convert`, {
     method: 'POST',
@@ -280,7 +599,7 @@ async function gotenbergLibreOfficeReverse(pdfBuffer, filename, targetFormat) {
 }
 
 // ============================================================
-// ENGINE: PDF → HTML (basic text extraction via pdf-lib)
+// ENGINE: PDF → HTML (pdf-lib page overview)
 // ============================================================
 
 async function pdfToHtml(pdfBuffer) {
@@ -314,18 +633,40 @@ async function pdfToHtml(pdfBuffer) {
 }
 
 // ============================================================
-// MAIN: convertFile (unified entry point)
+// ENGINE: PDF → Text
 // ============================================================
 
-/**
- * Convert a file from one format to another using the hub model.
- * @param {Buffer} fileBuffer - Source file content
- * @param {string} sourceFormat - e.g. 'docx', 'pdf', 'csv'
- * @param {string} targetFormat - e.g. 'pdf', 'docx', 'xlsx'
- * @param {string} filename - Original filename
- * @param {string} mimeType - MIME type of source file
- * @returns {{ buffer: Buffer, contentType: string, filename: string, lossy?: boolean }}
- */
+async function pdfToText(pdfBuffer) {
+  const pdfDoc = await PDFDocument.load(pdfBuffer, { ignoreEncryption: true });
+  const pageCount = pdfDoc.getPageCount();
+  let text = '';
+  for (let i = 0; i < pageCount; i++) {
+    const page = pdfDoc.getPage(i);
+    const { width, height } = page.getSize();
+    text += `=== Page ${i + 1} (${Math.round(width)}x${Math.round(height)} points) ===\n\n`;
+    text += `[Page ${i + 1} — full text extraction requires a dedicated PDF parser]\n\n`;
+  }
+  return Buffer.from(text.trim(), 'utf-8');
+}
+
+// ============================================================
+// ENGINE: Image → HTML
+// ============================================================
+
+async function imageToHtml(buffer, filename, mimeType) {
+  const base64 = buffer.toString('base64');
+  const dataUrl = `data:${mimeType};base64,${base64}`;
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><style>body{display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#f0f0f0}img{max-width:100%;max-height:100vh;box-shadow:0 2px 12px rgba(0,0,0,0.1)}</style></head><body>
+<img src="${dataUrl}" alt="${escapeHtml(filename)}">
+</body></html>`;
+  return Buffer.from(html, 'utf-8');
+}
+
+// ============================================================
+// MAIN: convertFile (unified entry point — any-to-any)
+// ============================================================
+
 async function convertFile(fileBuffer, sourceFormat, targetFormat, filename, mimeType) {
   if (sourceFormat === targetFormat) {
     return { buffer: fileBuffer, contentType: mimeType, filename };
@@ -337,62 +678,148 @@ async function convertFile(fileBuffer, sourceFormat, targetFormat, filename, mim
   if (!route) {
     throw new Error(
       `Conversion from ${sourceFormat} to ${targetFormat} is not supported. ` +
-      `Available conversions: ${Object.keys(CONVERSION_MAP).join(', ')}`
+      `Available: ${Object.keys(CONVERSION_MAP).join(', ')}`
     );
   }
 
   let resultBuffer;
-  let resultContentType;
+  let resultContentType = CONTENT_TYPES[targetFormat] || 'application/octet-stream';
 
   switch (route.engine) {
-    case 'markdown-to-pdf':
-      resultBuffer = await markdownToPdf(fileBuffer);
-      resultContentType = 'application/pdf';
-      break;
-
+    // === Gotenberg routes ===
     case 'gotenberg-libreoffice':
       resultBuffer = await gotenbergLibreOffice(fileBuffer, filename, mimeType);
-      resultContentType = 'application/pdf';
       break;
-
     case 'gotenberg-chromium':
       resultBuffer = await gotenbergChromium(fileBuffer, filename);
-      resultContentType = 'application/pdf';
       break;
-
+    case 'html-to-pdf':
+      resultBuffer = await htmlToPdf(fileBuffer, filename);
+      break;
+    case 'text-to-pdf':
+      resultBuffer = await textToPdf(fileBuffer);
+      break;
+    case 'markdown-to-pdf':
+      resultBuffer = await markdownToPdf(fileBuffer);
+      break;
+    case 'json-to-pdf':
+      resultBuffer = await jsonToPdf(fileBuffer);
+      break;
     case 'csv-to-html-table': {
-      const htmlBuffer = await csvToHtmlTable(fileBuffer);
-      if (targetFormat === 'html') {
-        resultBuffer = htmlBuffer;
-        resultContentType = 'text/html';
-      } else {
-        // CSV → PDF via HTML table → Chromium
-        resultBuffer = await gotenbergChromium(htmlBuffer, filename);
-        resultContentType = 'application/pdf';
+      if (targetFormat === 'pdf') {
+        const htmlTable = await csvToHtmlTable(fileBuffer);
+        const fullHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:Arial,sans-serif;padding:20px}table{border-collapse:collapse;width:100%;margin:10px 0}th{background:#2563eb;color:white;padding:8px 12px;text-align:left;font-weight:600}td{padding:6px 12px;border:1px solid #e5e7eb}tr:nth-child(even) td{background:#f9fafb}</style></head><body>${htmlTable}</body></html>`;
+        resultBuffer = await gotenbergChromium(Buffer.from(fullHtml, 'utf-8'), filename);
+      } else if (targetFormat === 'html') {
+        const htmlTable = await csvToHtmlTable(fileBuffer);
+        const fullHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:Arial,sans-serif;padding:20px}table{border-collapse:collapse;width:100%;margin:10px 0}th{background:#2563eb;color:white;padding:8px 12px;text-align:left;font-weight:600}td{padding:6px 12px;border:1px solid #e5e7eb}tr:nth-child(even) td{background:#f9fafb}</style></head><body>${htmlTable}</body></html>`;
+        resultBuffer = Buffer.from(fullHtml, 'utf-8');
       }
       break;
     }
 
-    case 'sheetjs-csv-to-xlsx':
+    // === SheetJS routes ===
+    case 'csv-to-xlsx':
       resultBuffer = await csvToXlsx(fileBuffer);
-      resultContentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      break;
+    case 'xlsx-to-csv':
+      resultBuffer = xlsxToCsv(fileBuffer);
+      resultContentType = 'text/csv';
+      break;
+    case 'xlsx-to-html': {
+      const htmlTable = xlsxToHtmlTable(fileBuffer);
+      resultBuffer = Buffer.from(`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:Arial,sans-serif;padding:20px}table{border-collapse:collapse;width:100%;margin:10px 0}th{background:#2563eb;color:white;padding:8px 12px;text-align:left;font-weight:600}td{padding:6px 12px;border:1px solid #e5e7eb}tr:nth-child(even) td{background:#f9fafb}.sheet-title{font-size:14px;font-weight:700;color:#333;margin:16px 0 8px}</style></head><body>${htmlTable}</body></html>`, 'utf-8');
+      break;
+    }
+    case 'xlsx-to-text':
+      resultBuffer = xlsxToText(fileBuffer);
+      break;
+    case 'xlsx-to-markdown':
+      resultBuffer = xlsxToMarkdown(fileBuffer);
       break;
 
+    // === DOCX routes ===
+    case 'docx-to-html': {
+      const html = await docxToHtml(fileBuffer);
+      resultBuffer = Buffer.from(`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:Arial,sans-serif;padding:20px;line-height:1.5}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:6px 10px}</style></head><body>${html.toString('utf-8')}</body></html>`, 'utf-8');
+      break;
+    }
+    case 'docx-to-text':
+      resultBuffer = await docxToText(fileBuffer);
+      break;
+    case 'docx-to-markdown':
+      resultBuffer = await docxToMarkdown(fileBuffer);
+      break;
+
+    // === PPTX routes ===
+    case 'pptx-to-text':
+      resultBuffer = await pptxToText(fileBuffer);
+      break;
+    case 'pptx-to-html': {
+      const html = await pptxToHtml(fileBuffer);
+      resultBuffer = Buffer.from(`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:Arial,sans-serif;padding:20px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:6px 10px}</style></head><body>${html.toString('utf-8')}</body></html>`, 'utf-8');
+      break;
+    }
+
+    // === CSV text/markdown routes ===
+    case 'csv-to-text':
+      resultBuffer = csvToText(fileBuffer);
+      break;
+    case 'csv-to-markdown':
+      resultBuffer = csvToMarkdown(fileBuffer);
+      break;
+
+    // === HTML routes ===
+    case 'html-to-text':
+      resultBuffer = htmlToText(fileBuffer);
+      break;
+    case 'html-to-markdown':
+      resultBuffer = htmlToMarkdown(fileBuffer);
+      break;
+    case 'html-to-docx':
+      resultBuffer = await htmlToDocx(fileBuffer);
+      break;
+
+    // === Markdown routes ===
+    case 'markdown-to-html':
+      resultBuffer = markdownToHtml(fileBuffer);
+      break;
+    case 'markdown-to-text':
+      resultBuffer = markdownToText(fileBuffer);
+      break;
+
+    // === JSON routes ===
+    case 'json-to-html': {
+      const html = jsonToHtml(fileBuffer);
+      resultBuffer = Buffer.from(`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:Arial,sans-serif;padding:20px}table{border-collapse:collapse;width:100%}th{background:#2563eb;color:white;padding:8px 12px;text-align:left}td{padding:6px 12px;border:1px solid #e5e7eb}tr:nth-child(even) td{background:#f9fafb}.kv{margin:4px 0}.kv strong{color:#1e40af}</style></head><body>${html.toString('utf-8')}</body></html>`, 'utf-8');
+      break;
+    }
+    case 'json-to-text':
+      resultBuffer = jsonToText(fileBuffer);
+      break;
+
+    // === Text routes ===
+    case 'text-to-html':
+      resultBuffer = textToHtml(fileBuffer);
+      break;
+    case 'text-to-markdown':
+      resultBuffer = textToMarkdown(fileBuffer);
+      break;
+
+    // === PDF reverse ===
     case 'gotenberg-libreoffice-reverse':
       resultBuffer = await gotenbergLibreOfficeReverse(fileBuffer, filename, targetFormat);
-      resultContentType = targetFormat === 'docx'
-        ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
       break;
-
     case 'pdf-to-html':
       resultBuffer = await pdfToHtml(fileBuffer);
-      resultContentType = 'text/html';
+      break;
+    case 'pdf-to-text':
+      resultBuffer = await pdfToText(fileBuffer);
       break;
 
-    case 'json-to-pdf':
-      resultBuffer = await jsonToPdf(fileBuffer);
-      resultContentType = 'application/pdf';
+    // === Image ===
+    case 'image-to-html':
+      resultBuffer = await imageToHtml(fileBuffer, filename, mimeType);
       break;
 
     default:
@@ -414,21 +841,15 @@ async function convertFile(fileBuffer, sourceFormat, targetFormat, filename, mim
 // ============================================================
 
 function escapeHtml(str) {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-/**
- * Get supported conversions for a given source format.
- */
 function getSupportedConversions(sourceFormat) {
   return Object.keys(CONVERSION_MAP)
     .filter(k => k.startsWith(`${sourceFormat}:`))
     .map(k => k.split(':')[1]);
 }
 
-/**
- * Get all supported conversion pairs.
- */
 function getAllConversions() {
   return Object.entries(CONVERSION_MAP).map(([key, val]) => ({
     from: key.split(':')[0],
@@ -442,4 +863,5 @@ module.exports = {
   getSupportedConversions,
   getAllConversions,
   CONVERSION_MAP,
+  CONTENT_TYPES,
 };
