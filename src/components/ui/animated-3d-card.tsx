@@ -90,7 +90,7 @@ function ToolCard({ card }: { card: CardData }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={handleLeave}
       className={cn(
-        "group relative flex flex-col justify-between rounded-2xl p-5 text-left overflow-hidden",
+        "group relative flex flex-col rounded-2xl p-5 text-left overflow-hidden w-full",
         "bg-white border transition-shadow duration-300",
         card.disabled
           ? "opacity-50 cursor-not-allowed border-gray-100"
@@ -123,20 +123,20 @@ function ToolCard({ card }: { card: CardData }) {
       <div className="relative z-10 flex items-start justify-between" style={{ transform: "translateZ(8px)" }}>
         {card.icon && (
           <div
-            className="w-11 h-11 rounded-xl flex items-center justify-center transition-transform duration-200 group-hover:scale-110"
+            className="w-10 h-10 rounded-xl flex items-center justify-center transition-transform duration-200 group-hover:scale-110"
             style={{ background: `${iconColor}10`, border: `1px solid ${iconColor}25` }}
           >
             <div style={{ color: iconColor }}>{card.icon}</div>
           </div>
         )}
-        <div className="h-2 w-2 rounded-full bg-blue-100 group-hover:bg-blue-200 transition-colors" />
+        <div className="h-1.5 w-1.5 rounded-full bg-blue-100 group-hover:bg-blue-200 transition-colors" />
       </div>
 
-      <div className="relative z-10 mt-5" style={{ transform: "translateZ(4px)" }}>
-        <h3 className="text-[15px] font-semibold tracking-tight leading-snug" style={{ color: "#0F172A" }}>
+      <div className="relative z-10 mt-auto pt-4" style={{ transform: "translateZ(4px)" }}>
+        <h3 className="text-[14px] font-semibold tracking-tight leading-snug" style={{ color: "#0F172A" }}>
           {card.title}
         </h3>
-        <p className="text-[13px] mt-1 leading-relaxed line-clamp-2" style={{ color: "#64748B" }}>
+        <p className="text-[12px] mt-1 leading-relaxed line-clamp-2" style={{ color: "#64748B" }}>
           {card.description}
         </p>
       </div>
@@ -171,7 +171,7 @@ function Card3DList({
 
   return (
     <motion.div
-      className={cn("grid w-full", gridClass, gapClass, className)}
+      className={cn("grid w-full items-stretch", gridClass, gapClass, className)}
       variants={animated ? customVariants : undefined}
       initial={animated ? "hidden" : undefined}
       animate={animated ? "visible" : undefined}

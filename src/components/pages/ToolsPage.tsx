@@ -22,9 +22,9 @@ import {
 
 function ToolSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="mb-10">
-      <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#0F172A' }}>
-        <div className="w-1.5 h-5 rounded-full" style={{ background: '#2563EB' }} />
+    <div className="mb-8">
+      <h2 className="text-base font-bold mb-3 flex items-center gap-2" style={{ color: '#0F172A' }}>
+        <div className="w-1 h-4 rounded-full" style={{ background: '#2563EB' }} />
         {title}
       </h2>
       {children}
@@ -103,55 +103,54 @@ export function ToolsPage() {
   ];
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-12">
-      <div className="text-center mb-12">
-        <h1 className="text-3xl font-bold mb-3" style={{ color: '#0F172A' }}>
+    <div className="max-w-5xl mx-auto px-4 py-10">
+      <div className="text-center mb-10">
+        <h1 className="text-2xl font-bold mb-2" style={{ color: '#0F172A' }}>
           All PDF & Document Tools
         </h1>
-        <p className="max-w-xl mx-auto" style={{ color: '#64748B' }}>
-          Free online tools to convert, compress, merge, split, and edit your documents.
-          Any format to any format — powered by LibreOffice and Chromium.
+        <p className="max-w-lg mx-auto text-sm" style={{ color: '#64748B' }}>
+          Convert, compress, merge, split, and edit documents — any format to any format.
         </p>
       </div>
 
       <ToolSection title="Organize PDF">
-        <Card3DList cards={organizeCards} columns={3} />
+        <Card3DList cards={organizeCards} columns={3} gap="sm" />
       </ToolSection>
 
       <ToolSection title="Optimize PDF">
-        <Card3DList cards={optimizeCards} columns={2} />
+        <Card3DList cards={optimizeCards} columns={2} gap="sm" />
       </ToolSection>
 
       <ToolSection title="Convert to PDF">
-        <Card3DList cards={convertToCards} columns={4} />
+        <Card3DList cards={convertToCards} columns={4} gap="sm" />
       </ToolSection>
 
       <ToolSection title="Convert from PDF">
-        <Card3DList cards={convertFromCards} columns={3} />
+        <Card3DList cards={convertFromCards} columns={3} gap="sm" />
       </ToolSection>
 
       <ToolSection title="Document Conversion">
-        <Card3DList cards={docConvertCards} columns={4} />
+        <Card3DList cards={docConvertCards} columns={4} gap="sm" />
       </ToolSection>
 
       <ToolSection title="Text & Markup">
-        <Card3DList cards={textMarkupCards} columns={4} />
+        <Card3DList cards={textMarkupCards} columns={4} gap="sm" />
       </ToolSection>
 
       <ToolSection title="Data Tools">
-        <Card3DList cards={dataCards} columns={3} />
+        <Card3DList cards={dataCards} columns={3} gap="sm" />
       </ToolSection>
 
       <ToolSection title="AI Tools">
-        <Card3DList cards={aiCards} columns={2} />
+        <Card3DList cards={aiCards} columns={2} gap="sm" />
       </ToolSection>
 
       {/* CTA */}
-      <div className="text-center mt-12 p-8 rounded-2xl" style={{ background: '#EFF6FF', border: '1px solid #BFDBFE' }}>
-        <Shield size={32} className="mx-auto mb-3" style={{ color: '#2563EB' }} />
-        <h3 className="text-xl font-bold mb-2" style={{ color: '#0F172A' }}>Need batch conversion?</h3>
-        <p className="mb-4 text-sm" style={{ color: '#64748B' }}>
-          Use the full converter for batch processing, custom settings, and all 45+ format combinations.
+      <div className="text-center mt-8 p-6 rounded-2xl" style={{ background: '#EFF6FF', border: '1px solid #BFDBFE' }}>
+        <Shield size={28} className="mx-auto mb-2" style={{ color: '#2563EB' }} />
+        <h3 className="text-lg font-bold mb-1" style={{ color: '#0F172A' }}>Need batch conversion?</h3>
+        <p className="mb-3 text-sm" style={{ color: '#64748B' }}>
+          Full converter with batch processing, custom settings, and 45+ format combos.
         </p>
         <button
           onClick={() => setActivePage('convert')}

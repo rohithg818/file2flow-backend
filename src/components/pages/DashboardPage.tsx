@@ -64,7 +64,7 @@ function getOutputBadgeColor(format: OutputFormat) {
 // Skeleton loader
 function StatCardSkeleton() {
   return (
-    <div className="p-5 rounded-2xl border animate-pulse" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
+    <div className="p-5 rounded-2xl border animate-pulse" style={{ background: '#FFFFFF', borderColor: '#E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
       <div className="flex items-center justify-between">
         <div className="space-y-2">
           <div className="h-3 w-24 rounded" style={{ background: '#E2E8F0' }} />
@@ -78,7 +78,7 @@ function StatCardSkeleton() {
 
 function ConversionCardSkeleton() {
   return (
-    <div className="p-4 rounded-2xl border animate-pulse" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
+    <div className="p-4 rounded-2xl border animate-pulse" style={{ background: '#FFFFFF', borderColor: '#E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
       <div className="flex items-start gap-3 mb-3">
         <div className="w-8 h-8 rounded-xl" style={{ background: '#E2E8F0' }} />
         <div className="flex-1 space-y-2">
@@ -300,11 +300,14 @@ export const DashboardPage: React.FC = () => {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-6 rounded-2xl border flex items-center justify-between transition-all hover:shadow-lg"
-          style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}
+          className="p-6 rounded-2xl border flex items-center justify-between"
+          style={{ background: '#FFFFFF', borderColor: '#E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
         >
           <div>
-            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: '#64748B' }}>Total Conversions</span>
+            <span className="text-xs font-bold uppercase tracking-wider flex items-center gap-2" style={{ color: '#0F172A' }}>
+              <Clock className="w-4 h-4" style={{ color: '#2563EB' }} />
+              Total Conversions
+            </span>
             <p className="text-3xl font-bold font-display text-[#0F172A] mt-1">{dashboard.length}</p>
           </div>
           <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'rgba(37, 99, 235, 0.1)' }}>
@@ -317,11 +320,14 @@ export const DashboardPage: React.FC = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
-          className="p-6 rounded-2xl border flex items-center justify-between transition-all hover:shadow-lg"
-          style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}
+          className="p-6 rounded-2xl border flex items-center justify-between"
+          style={{ background: '#FFFFFF', borderColor: '#E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
         >
           <div>
-            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: '#64748B' }}>Total Output Size</span>
+            <span className="text-xs font-bold uppercase tracking-wider flex items-center gap-2" style={{ color: '#0F172A' }}>
+              <Archive className="w-4 h-4" style={{ color: '#D97706' }} />
+              Total Output Size
+            </span>
             <p className="text-3xl font-bold font-display mt-1" style={{ color: '#2563EB' }}>{formatBytes(totalOutputBytes)}</p>
           </div>
           <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'rgba(217,119,6,0.1)' }}>
@@ -334,11 +340,14 @@ export const DashboardPage: React.FC = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="p-6 rounded-2xl border transition-all hover:shadow-lg"
-          style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}
+          className="p-6 rounded-2xl border"
+          style={{ background: '#FFFFFF', borderColor: '#E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
         >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: '#64748B' }}>Storage Status</span>
+            <span className="text-xs font-bold uppercase tracking-wider flex items-center gap-2" style={{ color: '#0F172A' }}>
+              <HardDrive className="w-4 h-4" style={{ color: '#2563EB' }} />
+              Storage Status
+            </span>
             {isPaid ? (
               <span className="text-sm font-bold" style={{ color: '#2563EB' }}>{storagePercent}%</span>
             ) : (
@@ -369,7 +378,7 @@ export const DashboardPage: React.FC = () => {
       </div>
 
       {/* Controls Row */}
-      <div className="p-5 rounded-2xl border flex flex-col md:flex-row items-center justify-between gap-4" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
+      <div className="p-5 rounded-2xl border flex flex-col md:flex-row items-center justify-between gap-4" style={{ background: '#FFFFFF', borderColor: '#E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
         {/* Search */}
         <div className="relative w-full md:w-80">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#64748B' }} />
@@ -474,8 +483,8 @@ export const DashboardPage: React.FC = () => {
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, x: -20 }}
-                              className="p-4 sm:p-5 rounded-2xl border transition-all hover:shadow-lg"
-                              style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}
+                              className="p-4 sm:p-5 rounded-2xl border"
+                              style={{ background: '#FFFFFF', borderColor: '#E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
                             >
                               {/* Row 1: File info + date */}
                               <div className="flex items-start justify-between gap-3 mb-3">
@@ -566,7 +575,7 @@ export const DashboardPage: React.FC = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="rounded-2xl border overflow-hidden"
-              style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}
+              style={{ background: '#FFFFFF', borderColor: '#E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
             >
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
@@ -706,7 +715,7 @@ export const DashboardPage: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="py-20 rounded-2xl border text-center space-y-5"
-          style={{ background: '#FFFFFF', borderColor: '#E2E8F0', borderWidth: '1px', borderStyle: 'dashed' }}
+          style={{ background: '#FFFFFF', borderColor: '#E2E8F0', borderWidth: '1px', borderStyle: 'dashed', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
         >
           <div className="w-20 h-20 mx-auto rounded-2xl flex items-center justify-center" style={{ background: 'rgba(37,99,235,0.06)' }}>
             <FileText className="w-10 h-10" style={{ color: '#2563EB', opacity: 0.5 }} />
