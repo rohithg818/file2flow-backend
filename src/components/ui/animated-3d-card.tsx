@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 
@@ -73,15 +73,40 @@ const itemVariants = {
 };
 
 function ToolCard({ card }: { card: CardData }) {
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [hovered, setHovered] = useState(false);
+
   const gradient = useMemo(
     () => card.gradient || (card.theme ? THEMES[card.theme] : THEMES.blue),
     [card.gradient, card.theme]
   );
 
+  const handleMove = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (card.disabled) return;
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      setMousePos({
+        x: (x / rect.width - 0.5) * 12,
+        y: (y / rect.height - 0.5) * -12,
+      });
+    },
+    [card.disabled]
+  );
+
+  const handleLeave = useCallback(() => {
+    setHovered(false);
+    setMousePos({ x: 0, y: 0 });
+  }, []);
+
   return (
     <motion.button
       onClick={card.onClick}
       disabled={card.disabled}
+      onMouseMove={handleMove}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={handleLeave}
       className={cn(
         "group relative flex flex-col justify-between rounded-2xl p-5 text-left text-white overflow-hidden",
         "bg-gradient-to-br",
@@ -90,17 +115,38 @@ function ToolCard({ card }: { card: CardData }) {
         card.disabled && "opacity-50 cursor-not-allowed",
         !card.disabled && "cursor-pointer"
       )}
-      whileHover={card.disabled ? undefined : { y: -4, scale: 1.01 }}
-      transition={{ duration: 0.25, ease: "easeOut" }}
+      style={{ transformStyle: "preserve-3d", perspective: "800px" }}
+      animate={{
+        rotateX: card.disabled ? 0 : mousePos.y,
+        rotateY: card.disabled ? 0 : mousePos.x,
+        z: hovered ? 15 : 0,
+      }}
+      transition={{ type: "spring", stiffness: 300, damping: 25, mass: 0.8 }}
+      whileTap={
+        card.disabled
+          ? undefined
+          : { scale: 0.97, rotateX: mousePos.y + 2, rotateY: mousePos.x + 2 }
+      }
     >
-      <div className="flex items-start justify-between">
+      {/* Light sweep overlay */}
+      <motion.div
+        className="absolute inset-0 rounded-2xl pointer-events-none"
+        animate={{
+          background: hovered
+            ? `linear-gradient(${mousePos.x * 5 + 135}deg, transparent 35%, rgba(255,255,255,0.18) 50%, transparent 65%)`
+            : "transparent",
+        }}
+        transition={{ duration: 0.3 }}
+      />
+
+      <div className="relative z-10 flex items-start justify-between" style={{ transform: "translateZ(8px)" }}>
         {card.icon && (
           <div className="text-white/90">{card.icon}</div>
         )}
         <div className="h-2 w-2 rounded-full bg-white/40 group-hover:bg-white/60 transition-colors" />
       </div>
 
-      <div className="mt-6">
+      <div className="relative z-10 mt-6" style={{ transform: "translateZ(4px)" }}>
         <h3 className="text-[15px] font-semibold tracking-tight leading-snug">
           {card.title}
         </h3>
@@ -143,6 +189,7 @@ function Card3DList({
       variants={animated ? customVariants : undefined}
       initial={animated ? "hidden" : undefined}
       animate={animated ? "visible" : undefined}
+      style={{ perspective: "1200px" }}
     >
       {cards.map((card) => (
         <motion.div
@@ -151,6 +198,7 @@ function Card3DList({
           whileInView={animated ? "visible" : undefined}
           initial={animated ? "hidden" : undefined}
           viewport={animated ? { once: true, margin: "-30px", amount: 0.2 } : undefined}
+          style={{ transformStyle: "preserve-3d" }}
         >
           <ToolCard card={card} />
         </motion.div>
