@@ -373,6 +373,24 @@ export function ToolsPage() {
         />
       </ToolSection>
 
+      {/* AI Tools */}
+      <ToolSection title="AI Tools">
+        <ToolCard
+          icon={<FileText size={28} />}
+          title="OCR — Extract Text"
+          description="PDF & image OCR via Mistral AI"
+          color="#7c3aed"
+          onClick={() => setActivePage('tools-ocr')}
+        />
+        <ToolCard
+          icon={<ArrowRightLeft size={28} />}
+          title="Translate"
+          description="30+ languages, AI-powered"
+          color="#2563eb"
+          onClick={() => setActivePage('tools-translate')}
+        />
+      </ToolSection>
+
       {/* CTA */}
       <div className="text-center mt-12 p-8 rounded-2xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white">
         <Shield size={32} className="mx-auto mb-3 opacity-80" />

@@ -13,11 +13,14 @@ const paddleRoutes = require('./routes/paddle');
 const userRoutes = require('./routes/user');
 const aiRoutes = require('./routes/ai');
 const pdfToolsRoutes = require('./routes/pdf-tools');
+const ocrRoutes = require('./routes/ocr');
+const translateRoutes = require('./routes/translate');
 
 const { convertViaGotenberg, checkGotenbergHealth, GOTENBERG_URL } = require('./gotenberg');
 const { convertFile, getSupportedConversions, getAllConversions } = require('./converter');
 const { jsonToPdf } = require('./json-to-pdf');
 const { enforcePlanLimits, incrementConversionCount } = require('./middleware/plan-enforcement');
+const { checkJsonUsageGate } = require('./middleware/usage-gate');
 const { apiLimiter, authLimiter, engineLimiter } = require('./middleware/rateLimit');
 const { errorHandler, requestLogger, logger } = require('./middleware/errorHandler');
 const { retryFetch } = require('./retryFetch');
@@ -62,6 +65,8 @@ app.use('/api/webhooks/paddle', paddleRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/pdf', pdfToolsRoutes);
+app.use('/api', ocrRoutes);
+app.use('/api', translateRoutes);
 
 // ============================================================
 // GOTENBERG CONVERSION (DOCX/XLSX/PPTX/HTML → PDF)
@@ -112,7 +117,7 @@ app.post('/api/convert', upload.single('file'), enforcePlanLimits, async (req, r
 // JSON → PDF (via Groq + Gotenberg)
 // ============================================================
 
-app.post('/api/convert/json', upload.single('file'), enforcePlanLimits, async (req, res) => {
+app.post('/api/convert/json', upload.single('file'), enforcePlanLimits, checkJsonUsageGate, async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 

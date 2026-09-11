@@ -5,6 +5,7 @@ import { Footer } from './components/layout/Footer';
 import { ToastContainer } from './components/common/ToastContainer';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { ConfirmDeleteModal } from './components/modals/ConfirmDeleteModal';
+import { AnonLimitModal } from './components/modals/AnonLimitModal';
 import { OutputPreviewModal } from './components/modals/OutputPreviewModal';
 import { LandingPage } from './components/pages/LandingPage';
 import { ConvertPage } from './components/pages/ConvertPage';
@@ -14,6 +15,8 @@ import { AccountPage } from './components/pages/AccountPage';
 import { AuthPage } from './components/pages/AuthPage';
 import { ToolsPage } from './components/pages/ToolsPage';
 import { ToolPage } from './components/pages/ToolPage';
+import { OcrPage } from './components/pages/OcrPage';
+import { TranslatePage } from './components/pages/TranslatePage';
 import { isMagicLinkUrl } from './services/firebase';
 
 const MainContent: React.FC = () => {
@@ -34,7 +37,9 @@ const MainContent: React.FC = () => {
       {activePage === 'account' && <AccountPage />}
       {activePage === 'auth' && <AuthPage />}
       {activePage === 'tools' && <ToolsPage />}
-      {activePage.startsWith('tools-') && <ToolPage />}
+      {activePage === 'tools-ocr' && <OcrPage />}
+      {activePage === 'tools-translate' && <TranslatePage />}
+      {activePage.startsWith('tools-') && activePage !== 'tools-ocr' && activePage !== 'tools-translate' && <ToolPage />}
     </main>
   );
 };

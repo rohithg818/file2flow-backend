@@ -49,9 +49,15 @@ const HEADING_KEY_PATTERNS = [
 ];
 
 const LONG_TEXT_THRESHOLD = 100;
+const MAX_TABLE_ROWS = 200;
 
 function isLongText(value) {
   return typeof value === 'string' && value.length > LONG_TEXT_THRESHOLD;
+}
+
+function truncateArray(arr, maxLen) {
+  if (arr.length <= maxLen) return arr;
+  return arr.slice(0, maxLen);
 }
 
 function isDateField(key, value) {
@@ -96,23 +102,25 @@ function classifyValue(key, value) {
     if (first === null || first === undefined) return { type: 'noise', reason: 'empty_elements' };
 
     if (typeof first !== 'object') {
-      return { type: 'scalar-list', data: value };
+      return { type: 'scalar-list', data: truncateArray(value, MAX_TABLE_ROWS) };
     }
 
     const objKeys = Object.keys(first).filter(k => !isSystemField(k));
     const hasLongText = objKeys.some(k => isLongText(first[k]));
+    const truncated = truncateArray(value, MAX_TABLE_ROWS);
 
     if (hasLongText) {
       return {
         type: 'longtext-list',
-        data: value,
+        data: truncated,
+        totalCount: value.length,
         headingKey: findHeadingKey(objKeys, first),
         bodyKey: findBodyKey(objKeys, findHeadingKey(objKeys, first), first),
         displayKeys: objKeys,
       };
     }
 
-    return { type: 'table', data: value, columns: objKeys };
+    return { type: 'table', data: truncated, totalCount: value.length, columns: objKeys };
   }
 
   if (typeof value === 'object') {
@@ -122,7 +130,23 @@ function classifyValue(key, value) {
     if (hasLongText) {
       return { type: 'longtext-block', data: value, keys: childKeys };
     }
-    return { type: 'section', title: key, data: value, keys: childKeys };
+    // Recursively classify nested object children
+    const nestedBlocks = [];
+    const nestedScalars = [];
+    for (const [childKey, childVal] of Object.entries(value)) {
+      if (isSystemField(childKey)) continue;
+      const childClass = classifyValue(childKey, childVal);
+      if (childClass.type === 'noise') continue;
+      if (childClass.type === 'scalar') {
+        nestedScalars.push([childKey, childClass.data]);
+      } else {
+        nestedBlocks.push({ key: childKey, classification: childClass });
+      }
+    }
+    if (nestedScalars.length > 0) {
+      nestedBlocks.unshift({ key: `${key} details`, classification: { type: 'definition-list', pairs: nestedScalars } });
+    }
+    return { type: 'section', title: key, children: nestedBlocks, data: value, keys: childKeys };
   }
 
   return { type: 'scalar', data: value, key };
@@ -229,7 +253,7 @@ function renderScalarList(data) {
   return '<ul>' + data.map(item => `<li>${escapeHtml(String(item ?? ''))}</li>`).join('') + '</ul>';
 }
 
-function renderTable(data, columns) {
+function renderTable(data, columns, totalCount) {
   if (columns.length === 0) return '';
   let html = '<table><thead><tr>';
   columns.forEach(k => { html += `<th>${escapeHtml(k)}</th>`; });
@@ -247,6 +271,9 @@ function renderTable(data, columns) {
     html += '</tr>';
   });
   html += '</tbody></table>';
+  if (totalCount && totalCount > data.length) {
+    html += `<p class="truncation-notice">Showing ${data.length} of ${totalCount} rows</p>`;
+  }
   return html;
 }
 
@@ -284,9 +311,18 @@ function renderLongTextBlock(block) {
 }
 
 function renderSection(block) {
-  const { data, keys, title } = block.classification;
+  const { title, children } = block.classification;
   const heading = title ? escapeHtml(title) : escapeHtml(block.key);
-  const children = keys.map(k => {
+
+  // If we have recursively classified children, render them
+  if (children && children.length > 0) {
+    const childHtml = children.map(child => renderBlock(child)).filter(Boolean).join('\n');
+    return `<div class="section-block"><h3>${heading}</h3>${childHtml}</div>`;
+  }
+
+  // Fallback: render raw data keys
+  const { data, keys } = block.classification;
+  const childContent = keys.map(k => {
     const val = data[k];
     if (val === null || val === undefined) return '';
     if (typeof val === 'object') {
@@ -294,7 +330,7 @@ function renderSection(block) {
     }
     return `<div class="kv"><strong>${escapeHtml(k)}:</strong> ${escapeHtml(String(val))}</div>`;
   }).join('\n');
-  return `<div class="section-block"><h3>${heading}</h3>${children}</div>`;
+  return `<div class="section-block"><h3>${heading}</h3>${childContent}</div>`;
 }
 
 function renderBlockData(data) {
@@ -329,7 +365,7 @@ function renderBlock(block) {
     case 'scalar-list':
       return `<div class="block"><h3>${escapeHtml(block.key)}</h3>${renderScalarList(c.data)}</div>`;
     case 'table':
-      return `<div class="block"><h3>${escapeHtml(block.key)}</h3>${renderTable(c.data, c.columns)}</div>`;
+      return `<div class="block"><h3>${escapeHtml(block.key)}</h3>${renderTable(c.data, c.columns, c.totalCount)}</div>`;
     case 'longtext-list':
       return renderLongTextList(block);
     case 'longtext-block':

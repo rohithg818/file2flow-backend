@@ -16,6 +16,15 @@
   "functions": {
     "api/ai.mjs": {
       "maxDuration": 60
+    },
+    "api/ocr.mjs": {
+      "maxDuration": 120
+    },
+    "api/translate.mjs": {
+      "maxDuration": 60
+    },
+    "api/json-to-pdf.mjs": {
+      "maxDuration": 120
     }
   }
 }

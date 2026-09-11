@@ -393,7 +393,7 @@ export interface ToastMessage {
 }
 
 // --- Active Page ---
-export type ActivePage = 'landing' | 'convert' | 'dashboard' | 'pricing' | 'account' | 'auth' | 'tools' | 'tools-pdf-compress' | 'tools-pdf-split' | 'tools-pdf-merge' | 'tools-pdf-rotate' | 'tools-pdf-protect' | `tools-convert${string}` | 'tools-json';
+export type ActivePage = 'landing' | 'convert' | 'dashboard' | 'pricing' | 'account' | 'auth' | 'tools' | 'tools-pdf-compress' | 'tools-pdf-split' | 'tools-pdf-merge' | 'tools-pdf-rotate' | 'tools-pdf-protect' | `tools-convert${string}` | 'tools-json' | 'tools-ocr' | 'tools-translate';
 
 // --- Plan Defaults (constants) ---
 export const PLAN_DEFAULTS: Record<PlanTier, {

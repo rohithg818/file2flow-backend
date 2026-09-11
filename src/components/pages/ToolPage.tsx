@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Upload, Download, ArrowLeft, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { getOrCreateAnonId } from '../../utils/anonId';
+import { AnonLimitModal } from '../modals/AnonLimitModal';
 
 const API_URL = (import.meta.env.VITE_API_URL || '').replace(/^\uFEFF/, '');
 
@@ -171,6 +173,8 @@ export function ToolPage() {
   const [status, setStatus] = useState<'idle' | 'processing' | 'done' | 'error'>('idle');
   const [result, setResult] = useState<{ blob: Blob; filename: string } | null>(null);
   const [error, setError] = useState('');
+  const [usageError, setUsageError] = useState<{ code: string; message: string } | null>(null);
+  const [showAnonModal, setShowAnonModal] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState('');
@@ -259,10 +263,21 @@ export function ToolPage() {
       const response = await fetch(`${API_URL}${config.endpoint}`, {
         method: 'POST',
         body: formData,
+        headers: { 'x-anon-id': getOrCreateAnonId() },
       });
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({ error: 'Processing failed' }));
+        if (err.code === 'ANON_LIMIT_REACHED') {
+          setShowAnonModal(true);
+          setStatus('idle');
+          return;
+        }
+        if (err.code === 'DAILY_LIMIT_REACHED') {
+          setUsageError({ code: err.code, message: err.message });
+          setStatus('idle');
+          return;
+        }
         throw new Error(err.error || `Server returned ${response.status}`);
       }
 
@@ -451,6 +466,37 @@ export function ToolPage() {
           </div>
         </div>
       )}
+
+      {/* Usage gate errors — inline for daily limit only */}
+      {usageError && config.endpoint === '/api/convert/json' && (
+        <div className="mt-6 p-4 rounded-xl" style={{
+          background: '#EFF6FF',
+          border: '1px solid #BFDBFE',
+        }}>
+          <div className="flex items-start gap-3">
+            <AlertCircle size={20} style={{ color: '#2563EB' }} />
+            <div className="flex-1">
+              <p className="font-medium" style={{ color: '#1E40AF' }}>Daily Limit Reached</p>
+              <p className="text-sm mt-1" style={{ color: '#1D4ED8' }}>
+                {usageError.message}
+              </p>
+            </div>
+            <button
+              onClick={() => setUsageError(null)}
+              className="text-sm px-3 py-1.5 rounded-lg font-medium shrink-0"
+              style={{ background: '#DBEAFE', color: '#1E40AF' }}
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
+      <AnonLimitModal
+        open={showAnonModal}
+        onClose={() => setShowAnonModal(false)}
+        onSignUp={() => { setShowAnonModal(false); setActivePage('auth'); }}
+      />
     </div>
   );
 }

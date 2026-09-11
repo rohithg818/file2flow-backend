@@ -126,6 +126,8 @@ const pageToPath: Record<string, string> = {
   'tools-pdf-rotate': '/tools/rotate',
   'tools-pdf-protect': '/tools/protect',
   'tools-json': '/tools/json',
+  'tools-ocr': '/tools/ocr',
+  'tools-translate': '/tools/translate',
 };
 
 const pathToPage: Record<string, ActivePage> = Object.fromEntries(
