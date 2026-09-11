@@ -7,6 +7,15 @@
         "command": ["codegraph", "serve", "--mcp"],
         "disabled": false,
         "codemode": false
+      },
+      // 21st MCP - UI component marketplace
+      // WARNING: Set API_KEY_21ST env var instead of hardcoding in production
+      "21st": {
+        "type": "remote",
+        "url": "https://21st.dev/api/mcp",
+        "headers": {
+          "x-api-key": "21st_sk_0beb693783b888ef92edfdac4d4e93899ea387ff94a15afb37eda0b08bb8ef8c"
+        }
       }
     }
   }

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
+import { Card3DList, type CardData } from '../ui/animated-3d-card';
 import {
   FileDown,
   FileUp,
@@ -21,35 +22,6 @@ import {
   Presentation,
 } from 'lucide-react';
 
-interface ToolCardProps {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  color: string;
-  onClick: () => void;
-}
-
-function ToolCard({ icon, title, description, color, onClick }: ToolCardProps) {
-  return (
-    <button
-      onClick={onClick}
-      className="group flex flex-col items-center gap-3 p-6 rounded-2xl border hover:border-blue-400 hover:shadow-lg transition-all duration-200 cursor-pointer text-center"
-      style={{ background: 'rgba(255,255,255,0.8)', borderColor: '#E2E8F0', backdropFilter: 'blur(20px)' }}
-    >
-      <div
-        className="w-14 h-14 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110"
-        style={{ backgroundColor: color + '15', color }}
-      >
-        {icon}
-      </div>
-      <div>
-        <h3 className="font-semibold text-sm" style={{ color: '#0F172A' }}>{title}</h3>
-        <p className="text-xs mt-1" style={{ color: '#64748B' }}>{description}</p>
-      </div>
-    </button>
-  );
-}
-
 function ToolSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mb-10">
@@ -57,15 +29,79 @@ function ToolSection({ title, children }: { title: string; children: React.React
         <div className="w-1.5 h-5 rounded-full" style={{ background: '#2563EB' }} />
         {title}
       </h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        {children}
-      </div>
+      {children}
     </div>
   );
 }
 
 export function ToolsPage() {
   const { setActivePage } = useApp();
+
+  const organizeCards: CardData[] = [
+    { id: 'pdf-merge', title: 'Merge PDF', description: 'Combine multiple PDFs into one', icon: <Merge size={28} />, theme: 'secondary', onClick: () => setActivePage('tools-pdf-merge') },
+    { id: 'pdf-split', title: 'Split PDF', description: 'Extract pages from a PDF', icon: <Scissors size={28} />, theme: 'danger', onClick: () => setActivePage('tools-pdf-split') },
+    { id: 'pdf-rotate', title: 'Rotate PDF', description: 'Rotate or reorder pages', icon: <RotateCw size={28} />, theme: 'accent', onClick: () => setActivePage('tools-pdf-rotate') },
+  ];
+
+  const optimizeCards: CardData[] = [
+    { id: 'pdf-compress', title: 'Compress PDF', description: 'Reduce file size without quality loss', icon: <Zap size={28} />, theme: 'success', onClick: () => setActivePage('tools-pdf-compress') },
+    { id: 'pdf-protect', title: 'Protect PDF', description: 'Add or remove password protection', icon: <Lock size={28} />, theme: 'warning', onClick: () => setActivePage('tools-pdf-protect') },
+  ];
+
+  const convertToCards: CardData[] = [
+    { id: 'docx-pdf', title: 'DOCX → PDF', description: 'Word document to PDF', icon: <FileText size={28} />, theme: 'secondary', onClick: () => setActivePage('tools-convert--docx-to-pdf') },
+    { id: 'xlsx-pdf', title: 'XLSX → PDF', description: 'Excel spreadsheet to PDF', icon: <FileSpreadsheet size={28} />, theme: 'success', onClick: () => setActivePage('tools-convert--xlsx-to-pdf') },
+    { id: 'pptx-pdf', title: 'PPTX → PDF', description: 'PowerPoint slides to PDF', icon: <FileDown size={28} />, theme: 'danger', onClick: () => setActivePage('tools-convert--pptx-to-pdf') },
+    { id: 'html-pdf', title: 'HTML → PDF', description: 'Web page to PDF', icon: <File size={28} />, theme: 'accent', onClick: () => setActivePage('tools-convert--html-to-pdf') },
+    { id: 'csv-pdf', title: 'CSV → PDF', description: 'CSV spreadsheet to PDF', icon: <FileText size={28} />, theme: 'info', onClick: () => setActivePage('tools-convert--csv-to-pdf') },
+    { id: 'md-pdf', title: 'MD → PDF', description: 'Markdown document to PDF', icon: <FileCode size={28} />, theme: 'accent', onClick: () => setActivePage('tools-convert--md-to-pdf') },
+    { id: 'txt-pdf', title: 'TXT → PDF', description: 'Plain text to PDF', icon: <Type size={28} />, theme: 'neutral', onClick: () => setActivePage('tools-convert--txt-to-pdf') },
+    { id: 'img-pdf', title: 'Image → PDF', description: 'JPG/PNG image to PDF', icon: <Image size={28} />, theme: 'danger', onClick: () => setActivePage('tools-convert--image-to-pdf') },
+  ];
+
+  const convertFromCards: CardData[] = [
+    { id: 'pdf-html', title: 'PDF → HTML', description: 'PDF to web page', icon: <File size={28} />, theme: 'accent', onClick: () => setActivePage('tools-convert--pdf-to-html') },
+    { id: 'pdf-txt', title: 'PDF → TXT', description: 'PDF to plain text', icon: <Type size={28} />, theme: 'neutral', onClick: () => setActivePage('tools-convert--pdf-to-txt') },
+    { id: 'pdf-md', title: 'PDF → MD', description: 'PDF to Markdown', icon: <FileCode size={28} />, theme: 'accent', onClick: () => setActivePage('tools-convert--pdf-to-md') },
+  ];
+
+  const docConvertCards: CardData[] = [
+    { id: 'docx-html', title: 'DOCX → HTML', description: 'Word to web page', icon: <FileText size={28} />, theme: 'secondary', onClick: () => setActivePage('tools-convert--docx-to-html') },
+    { id: 'docx-md', title: 'DOCX → MD', description: 'Word to Markdown', icon: <FileCode size={28} />, theme: 'accent', onClick: () => setActivePage('tools-convert--docx-to-md') },
+    { id: 'docx-txt', title: 'DOCX → TXT', description: 'Word to plain text', icon: <Type size={28} />, theme: 'neutral', onClick: () => setActivePage('tools-convert--docx-to-txt') },
+    { id: 'xlsx-csv', title: 'XLSX → CSV', description: 'Excel to CSV', icon: <FileSpreadsheet size={28} />, theme: 'success', onClick: () => setActivePage('tools-convert--xlsx-to-csv') },
+    { id: 'xlsx-html', title: 'XLSX → HTML', description: 'Excel to web page', icon: <File size={28} />, theme: 'accent', onClick: () => setActivePage('tools-convert--xlsx-to-html') },
+    { id: 'xlsx-md', title: 'XLSX → MD', description: 'Excel to Markdown', icon: <FileCode size={28} />, theme: 'accent', onClick: () => setActivePage('tools-convert--xlsx-to-md') },
+    { id: 'xlsx-txt', title: 'XLSX → TXT', description: 'Excel to plain text', icon: <Type size={28} />, theme: 'neutral', onClick: () => setActivePage('tools-convert--xlsx-to-txt') },
+    { id: 'csv-xlsx', title: 'CSV → XLSX', description: 'CSV to Excel', icon: <ArrowRightLeft size={28} />, theme: 'success', onClick: () => setActivePage('tools-convert--csv-to-xlsx') },
+    { id: 'csv-html', title: 'CSV → HTML', description: 'CSV to web table', icon: <File size={28} />, theme: 'accent', onClick: () => setActivePage('tools-convert--csv-to-html') },
+    { id: 'csv-md', title: 'CSV → MD', description: 'CSV to Markdown table', icon: <FileCode size={28} />, theme: 'accent', onClick: () => setActivePage('tools-convert--csv-to-md') },
+    { id: 'pptx-html', title: 'PPTX → HTML', description: 'Slides to web page', icon: <Presentation size={28} />, theme: 'danger', onClick: () => setActivePage('tools-convert--pptx-to-html') },
+    { id: 'pptx-txt', title: 'PPTX → TXT', description: 'Slides to plain text', icon: <Type size={28} />, theme: 'neutral', onClick: () => setActivePage('tools-convert--pptx-to-txt') },
+    { id: 'pptx-md', title: 'PPTX → MD', description: 'Slides to Markdown', icon: <FileCode size={28} />, theme: 'accent', onClick: () => setActivePage('tools-convert--pptx-to-md') },
+  ];
+
+  const textMarkupCards: CardData[] = [
+    { id: 'html-txt', title: 'HTML → TXT', description: 'Strip HTML tags', icon: <File size={28} />, theme: 'accent', onClick: () => setActivePage('tools-convert--html-to-txt') },
+    { id: 'html-md', title: 'HTML → MD', description: 'HTML to Markdown', icon: <FileCode size={28} />, theme: 'accent', onClick: () => setActivePage('tools-convert--html-to-md') },
+    { id: 'md-html', title: 'MD → HTML', description: 'Markdown to web page', icon: <FileCode size={28} />, theme: 'accent', onClick: () => setActivePage('tools-convert--md-to-html') },
+    { id: 'md-txt', title: 'MD → TXT', description: 'Markdown to plain text', icon: <Type size={28} />, theme: 'neutral', onClick: () => setActivePage('tools-convert--md-to-txt') },
+    { id: 'txt-html', title: 'TXT → HTML', description: 'Text to web page', icon: <File size={28} />, theme: 'accent', onClick: () => setActivePage('tools-convert--txt-to-html') },
+    { id: 'txt-md', title: 'TXT → MD', description: 'Text to Markdown', icon: <FileCode size={28} />, theme: 'accent', onClick: () => setActivePage('tools-convert--txt-to-md') },
+  ];
+
+  const dataCards: CardData[] = [
+    { id: 'json-pdf', title: 'JSON → PDF', description: 'AI-powered structured report from JSON data', icon: <FileJson size={28} />, theme: 'accent', onClick: () => setActivePage('tools-json') },
+    { id: 'json-html', title: 'JSON → HTML', description: 'JSON to styled table', icon: <FileJson size={28} />, theme: 'warning', onClick: () => setActivePage('tools-convert--json-to-html') },
+    { id: 'json-txt', title: 'JSON → TXT', description: 'JSON to formatted text', icon: <FileJson size={28} />, theme: 'neutral', onClick: () => setActivePage('tools-convert--json-to-txt') },
+  ];
+
+  const aiCards: CardData[] = [
+    { id: 'ocr', title: 'OCR — Extract Text', description: 'Extract text from PDFs and images using Mistral AI', icon: <FileText size={28} />, theme: 'accent', onClick: () => setActivePage('tools-ocr') },
+    { id: 'translate', title: 'Translate', description: 'Translate to 30+ languages with AI', icon: <ArrowRightLeft size={28} />, theme: 'secondary', onClick: () => setActivePage('tools-translate') },
+  ];
+
+  const gridCols: 1 | 2 | 3 | 4 = 4;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-12">
@@ -79,316 +115,36 @@ export function ToolsPage() {
         </p>
       </div>
 
-      {/* Organize PDF */}
       <ToolSection title="Organize PDF">
-        <ToolCard
-          icon={<Merge size={28} />}
-          title="Merge PDF"
-          description="Combine multiple PDFs"
-          color="#2563eb"
-          onClick={() => setActivePage('tools-pdf-merge')}
-        />
-        <ToolCard
-          icon={<Scissors size={28} />}
-          title="Split PDF"
-          description="Extract pages from PDF"
-          color="#dc2626"
-          onClick={() => setActivePage('tools-pdf-split')}
-        />
-        <ToolCard
-          icon={<RotateCw size={28} />}
-          title="Rotate PDF"
-          description="Rotate or reorder pages"
-          color="#7c3aed"
-          onClick={() => setActivePage('tools-pdf-rotate')}
-        />
+        <Card3DList cards={organizeCards} columns={3} size="sm" variant="minimal" />
       </ToolSection>
 
-      {/* Optimize PDF */}
       <ToolSection title="Optimize PDF">
-        <ToolCard
-          icon={<Zap size={28} />}
-          title="Compress PDF"
-          description="Reduce file size"
-          color="#059669"
-          onClick={() => setActivePage('tools-pdf-compress')}
-        />
-        <ToolCard
-          icon={<Lock size={28} />}
-          title="Protect PDF"
-          description="Add or remove password"
-          color="#d97706"
-          onClick={() => setActivePage('tools-pdf-protect')}
-        />
+        <Card3DList cards={optimizeCards} columns={2} size="sm" variant="minimal" />
       </ToolSection>
 
-      {/* Convert to PDF */}
       <ToolSection title="Convert to PDF">
-        <ToolCard
-          icon={<FileText size={28} />}
-          title="DOCX → PDF"
-          description="Word to PDF"
-          color="#2563eb"
-          onClick={() => setActivePage('tools-convert--docx-to-pdf')}
-        />
-        <ToolCard
-          icon={<FileSpreadsheet size={28} />}
-          title="XLSX → PDF"
-          description="Excel to PDF"
-          color="#059669"
-          onClick={() => setActivePage('tools-convert--xlsx-to-pdf')}
-        />
-        <ToolCard
-          icon={<FileDown size={28} />}
-          title="PPTX → PDF"
-          description="PowerPoint to PDF"
-          color="#dc2626"
-          onClick={() => setActivePage('tools-convert--pptx-to-pdf')}
-        />
-        <ToolCard
-          icon={<File size={28} />}
-          title="HTML → PDF"
-          description="Web page to PDF"
-          color="#7c3aed"
-          onClick={() => setActivePage('tools-convert--html-to-pdf')}
-        />
-        <ToolCard
-          icon={<FileText size={28} />}
-          title="CSV → PDF"
-          description="Spreadsheet to PDF"
-          color="#0891b2"
-          onClick={() => setActivePage('tools-convert--csv-to-pdf')}
-        />
-        <ToolCard
-          icon={<FileCode size={28} />}
-          title="MD → PDF"
-          description="Markdown to PDF"
-          color="#6366f1"
-          onClick={() => setActivePage('tools-convert--md-to-pdf')}
-        />
-        <ToolCard
-          icon={<Type size={28} />}
-          title="TXT → PDF"
-          description="Plain text to PDF"
-          color="#64748b"
-          onClick={() => setActivePage('tools-convert--txt-to-pdf')}
-        />
-        <ToolCard
-          icon={<Image size={28} />}
-          title="Image → PDF"
-          description="JPG/PNG to PDF"
-          color="#c2410c"
-          onClick={() => setActivePage('tools-convert--image-to-pdf')}
-        />
+        <Card3DList cards={convertToCards} columns={gridCols} size="sm" variant="minimal" />
       </ToolSection>
 
-      {/* Convert from PDF */}
       <ToolSection title="Convert from PDF">
-        <ToolCard
-          icon={<File size={28} />}
-          title="PDF → HTML"
-          description="PDF to web page"
-          color="#7c3aed"
-          onClick={() => setActivePage('tools-convert--pdf-to-html')}
-        />
-        <ToolCard
-          icon={<Type size={28} />}
-          title="PDF → TXT"
-          description="PDF to plain text"
-          color="#64748b"
-          onClick={() => setActivePage('tools-convert--pdf-to-txt')}
-        />
-        <ToolCard
-          icon={<FileCode size={28} />}
-          title="PDF → MD"
-          description="PDF to Markdown"
-          color="#6366f1"
-          onClick={() => setActivePage('tools-convert--pdf-to-md')}
-        />
+        <Card3DList cards={convertFromCards} columns={3} size="sm" variant="minimal" />
       </ToolSection>
 
-      {/* Document Conversion */}
       <ToolSection title="Document Conversion">
-        <ToolCard
-          icon={<FileText size={28} />}
-          title="DOCX → HTML"
-          description="Word to web page"
-          color="#2563eb"
-          onClick={() => setActivePage('tools-convert--docx-to-html')}
-        />
-        <ToolCard
-          icon={<FileCode size={28} />}
-          title="DOCX → MD"
-          description="Word to Markdown"
-          color="#6366f1"
-          onClick={() => setActivePage('tools-convert--docx-to-md')}
-        />
-        <ToolCard
-          icon={<Type size={28} />}
-          title="DOCX → TXT"
-          description="Word to plain text"
-          color="#64748b"
-          onClick={() => setActivePage('tools-convert--docx-to-txt')}
-        />
-        <ToolCard
-          icon={<FileSpreadsheet size={28} />}
-          title="XLSX → CSV"
-          description="Excel to CSV"
-          color="#059669"
-          onClick={() => setActivePage('tools-convert--xlsx-to-csv')}
-        />
-        <ToolCard
-          icon={<File size={28} />}
-          title="XLSX → HTML"
-          description="Excel to web page"
-          color="#7c3aed"
-          onClick={() => setActivePage('tools-convert--xlsx-to-html')}
-        />
-        <ToolCard
-          icon={<FileCode size={28} />}
-          title="XLSX → MD"
-          description="Excel to Markdown"
-          color="#6366f1"
-          onClick={() => setActivePage('tools-convert--xlsx-to-md')}
-        />
-        <ToolCard
-          icon={<Type size={28} />}
-          title="XLSX → TXT"
-          description="Excel to plain text"
-          color="#64748b"
-          onClick={() => setActivePage('tools-convert--xlsx-to-txt')}
-        />
-        <ToolCard
-          icon={<ArrowRightLeft size={28} />}
-          title="CSV → XLSX"
-          description="CSV to Excel"
-          color="#059669"
-          onClick={() => setActivePage('tools-convert--csv-to-xlsx')}
-        />
-        <ToolCard
-          icon={<File size={28} />}
-          title="CSV → HTML"
-          description="CSV to web table"
-          color="#7c3aed"
-          onClick={() => setActivePage('tools-convert--csv-to-html')}
-        />
-        <ToolCard
-          icon={<FileCode size={28} />}
-          title="CSV → MD"
-          description="CSV to Markdown table"
-          color="#6366f1"
-          onClick={() => setActivePage('tools-convert--csv-to-md')}
-        />
-        <ToolCard
-          icon={<Presentation size={28} />}
-          title="PPTX → HTML"
-          description="Slides to web page"
-          color="#dc2626"
-          onClick={() => setActivePage('tools-convert--pptx-to-html')}
-        />
-        <ToolCard
-          icon={<Type size={28} />}
-          title="PPTX → TXT"
-          description="Slides to plain text"
-          color="#64748b"
-          onClick={() => setActivePage('tools-convert--pptx-to-txt')}
-        />
-        <ToolCard
-          icon={<FileCode size={28} />}
-          title="PPTX → MD"
-          description="Slides to Markdown"
-          color="#6366f1"
-          onClick={() => setActivePage('tools-convert--pptx-to-md')}
-        />
+        <Card3DList cards={docConvertCards} columns={gridCols} size="sm" variant="minimal" />
       </ToolSection>
 
-      {/* Text & Markup */}
       <ToolSection title="Text & Markup">
-        <ToolCard
-          icon={<File size={28} />}
-          title="HTML → TXT"
-          description="Strip HTML tags"
-          color="#7c3aed"
-          onClick={() => setActivePage('tools-convert--html-to-txt')}
-        />
-        <ToolCard
-          icon={<FileCode size={28} />}
-          title="HTML → MD"
-          description="HTML to Markdown"
-          color="#6366f1"
-          onClick={() => setActivePage('tools-convert--html-to-md')}
-        />
-        <ToolCard
-          icon={<FileCode size={28} />}
-          title="MD → HTML"
-          description="Markdown to web page"
-          color="#6366f1"
-          onClick={() => setActivePage('tools-convert--md-to-html')}
-        />
-        <ToolCard
-          icon={<Type size={28} />}
-          title="MD → TXT"
-          description="Markdown to plain text"
-          color="#64748b"
-          onClick={() => setActivePage('tools-convert--md-to-txt')}
-        />
-        <ToolCard
-          icon={<File size={28} />}
-          title="TXT → HTML"
-          description="Text to web page"
-          color="#7c3aed"
-          onClick={() => setActivePage('tools-convert--txt-to-html')}
-        />
-        <ToolCard
-          icon={<FileCode size={28} />}
-          title="TXT → MD"
-          description="Text to Markdown"
-          color="#6366f1"
-          onClick={() => setActivePage('tools-convert--txt-to-md')}
-        />
+        <Card3DList cards={textMarkupCards} columns={gridCols} size="sm" variant="minimal" />
       </ToolSection>
 
-      {/* Data Tools */}
       <ToolSection title="Data Tools">
-        <ToolCard
-          icon={<FileJson size={28} />}
-          title="JSON → PDF"
-          description="AI-powered report"
-          color="#7c3aed"
-          onClick={() => setActivePage('tools-json')}
-        />
-        <ToolCard
-          icon={<FileJson size={28} />}
-          title="JSON → HTML"
-          description="JSON to styled table"
-          color="#d97706"
-          onClick={() => setActivePage('tools-convert--json-to-html')}
-        />
-        <ToolCard
-          icon={<FileJson size={28} />}
-          title="JSON → TXT"
-          description="JSON to formatted text"
-          color="#64748b"
-          onClick={() => setActivePage('tools-convert--json-to-txt')}
-        />
+        <Card3DList cards={dataCards} columns={3} size="sm" variant="minimal" />
       </ToolSection>
 
-      {/* AI Tools */}
       <ToolSection title="AI Tools">
-        <ToolCard
-          icon={<FileText size={28} />}
-          title="OCR — Extract Text"
-          description="PDF & image OCR via Mistral AI"
-          color="#7c3aed"
-          onClick={() => setActivePage('tools-ocr')}
-        />
-        <ToolCard
-          icon={<ArrowRightLeft size={28} />}
-          title="Translate"
-          description="30+ languages, AI-powered"
-          color="#2563eb"
-          onClick={() => setActivePage('tools-translate')}
-        />
+        <Card3DList cards={aiCards} columns={2} size="sm" variant="default" />
       </ToolSection>
 
       {/* CTA */}

@@ -39,8 +39,7 @@ export const Navbar1: React.FC = () => {
           ? 'bg-white/95 backdrop-blur-xl border border-[#E2E8F0] shadow-[0_2px_20px_rgba(0,0,0,0.08)]' 
           : 'bg-white/60 backdrop-blur-md border border-white/40'
       }`}>
-        <button onClick={() => handleNav("landing")} className="flex items-center gap-2.5 group focus:outline-none cursor-pointer">
-          <img src="/images/logo.png" alt="File2Flow" className="h-9 w-9 rounded-full object-cover" />
+        <button onClick={() => handleNav("landing")} className="flex items-center group focus:outline-none cursor-pointer">
           <div className="flex items-baseline gap-0.5">
             <span className="text-[15px] font-bold tracking-tight" style={{ color: '#0F172A' }}>File</span>
             <span className="text-[15px] font-extrabold" style={{ color: '#EF4444' }}>2</span>

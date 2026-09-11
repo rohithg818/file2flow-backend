@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Navbar1 as Navbar } from './components/ui/navbar-1';
 import { Footer } from './components/layout/Footer';
@@ -44,19 +44,39 @@ const MainContent: React.FC = () => {
   );
 };
 
+function AppShell() {
+  const { setActivePage } = useApp();
+  const [anonLimitOpen, setAnonLimitOpen] = useState(false);
+
+  useEffect(() => {
+    const handler = () => setAnonLimitOpen(true);
+    window.addEventListener('show-anon-limit', handler);
+    return () => window.removeEventListener('show-anon-limit', handler);
+  }, []);
+
+  return (
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--color-body)', color: 'var(--color-text)' }}>
+      <Navbar />
+      <MainContent />
+      <Footer />
+
+      <ConfirmDeleteModal />
+      <OutputPreviewModal />
+      <AnonLimitModal
+        open={anonLimitOpen}
+        onClose={() => setAnonLimitOpen(false)}
+        onSignUp={() => { setAnonLimitOpen(false); setActivePage('auth'); }}
+      />
+      <ToastContainer />
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
       <AppProvider>
-        <div className="min-h-screen flex flex-col" style={{ background: 'var(--color-body)', color: 'var(--color-text)' }}>
-          <Navbar />
-          <MainContent />
-          <Footer />
-
-          <ConfirmDeleteModal />
-          <OutputPreviewModal />
-          <ToastContainer />
-        </div>
+        <AppShell />
       </AppProvider>
     </ErrorBoundary>
   );
