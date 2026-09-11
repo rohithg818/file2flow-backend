@@ -91,7 +91,7 @@ export function TranslatePage() {
     setError('');
 
     try {
-      const res = await fetch(`${API_URL}/api/translate/translate`, {
+      const res = await fetch(`${API_URL}/api/translate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
