@@ -32,71 +32,74 @@ function ToolSection({ title, children }: { title: string; children: React.React
   );
 }
 
+const blue = '#2563EB';
+const indigo = '#4F46E5';
+
 export function ToolsPage() {
   const { setActivePage } = useApp();
 
   const organizeCards: CardData[] = [
-    { id: 'pdf-merge', title: 'Merge PDF', description: 'Combine multiple PDFs into one', icon: <Merge size={24} />, theme: 'blue', onClick: () => setActivePage('tools-pdf-merge') },
-    { id: 'pdf-split', title: 'Split PDF', description: 'Extract pages from a PDF', icon: <Scissors size={24} />, theme: 'red', onClick: () => setActivePage('tools-pdf-split') },
-    { id: 'pdf-rotate', title: 'Rotate PDF', description: 'Rotate or reorder pages', icon: <RotateCw size={24} />, theme: 'purple', onClick: () => setActivePage('tools-pdf-rotate') },
+    { id: 'pdf-merge', title: 'Merge PDF', description: 'Combine multiple PDFs into one', icon: <Merge size={22} />, iconColor: blue, onClick: () => setActivePage('tools-pdf-merge') },
+    { id: 'pdf-split', title: 'Split PDF', description: 'Extract pages from a PDF', icon: <Scissors size={22} />, iconColor: blue, onClick: () => setActivePage('tools-pdf-split') },
+    { id: 'pdf-rotate', title: 'Rotate PDF', description: 'Rotate or reorder pages', icon: <RotateCw size={22} />, iconColor: blue, onClick: () => setActivePage('tools-pdf-rotate') },
   ];
 
   const optimizeCards: CardData[] = [
-    { id: 'pdf-compress', title: 'Compress PDF', description: 'Reduce file size without quality loss', icon: <Zap size={24} />, theme: 'green', onClick: () => setActivePage('tools-pdf-compress') },
-    { id: 'pdf-protect', title: 'Protect PDF', description: 'Add or remove password protection', icon: <Lock size={24} />, theme: 'amber', onClick: () => setActivePage('tools-pdf-protect') },
+    { id: 'pdf-compress', title: 'Compress PDF', description: 'Reduce file size without quality loss', icon: <Zap size={22} />, iconColor: blue, onClick: () => setActivePage('tools-pdf-compress') },
+    { id: 'pdf-protect', title: 'Protect PDF', description: 'Add or remove password protection', icon: <Lock size={22} />, iconColor: blue, onClick: () => setActivePage('tools-pdf-protect') },
   ];
 
   const convertToCards: CardData[] = [
-    { id: 'docx-pdf', title: 'DOCX → PDF', description: 'Word document to PDF', icon: <FileText size={24} />, theme: 'blue', onClick: () => setActivePage('tools-convert--docx-to-pdf') },
-    { id: 'xlsx-pdf', title: 'XLSX → PDF', description: 'Excel spreadsheet to PDF', icon: <FileSpreadsheet size={24} />, theme: 'green', onClick: () => setActivePage('tools-convert--xlsx-to-pdf') },
-    { id: 'pptx-pdf', title: 'PPTX → PDF', description: 'PowerPoint slides to PDF', icon: <FileDown size={24} />, theme: 'red', onClick: () => setActivePage('tools-convert--pptx-to-pdf') },
-    { id: 'html-pdf', title: 'HTML → PDF', description: 'Web page to PDF', icon: <File size={24} />, theme: 'purple', onClick: () => setActivePage('tools-convert--html-to-pdf') },
-    { id: 'csv-pdf', title: 'CSV → PDF', description: 'CSV spreadsheet to PDF', icon: <FileText size={24} />, theme: 'cyan', onClick: () => setActivePage('tools-convert--csv-to-pdf') },
-    { id: 'md-pdf', title: 'MD → PDF', description: 'Markdown document to PDF', icon: <FileCode size={24} />, theme: 'indigo', onClick: () => setActivePage('tools-convert--md-to-pdf') },
-    { id: 'txt-pdf', title: 'TXT → PDF', description: 'Plain text to PDF', icon: <Type size={24} />, theme: 'slate', onClick: () => setActivePage('tools-convert--txt-to-pdf') },
-    { id: 'img-pdf', title: 'Image → PDF', description: 'JPG/PNG image to PDF', icon: <Image size={24} />, theme: 'orange', onClick: () => setActivePage('tools-convert--image-to-pdf') },
+    { id: 'docx-pdf', title: 'DOCX → PDF', description: 'Word document to PDF', icon: <FileText size={22} />, iconColor: blue, onClick: () => setActivePage('tools-convert--docx-to-pdf') },
+    { id: 'xlsx-pdf', title: 'XLSX → PDF', description: 'Excel spreadsheet to PDF', icon: <FileSpreadsheet size={22} />, iconColor: blue, onClick: () => setActivePage('tools-convert--xlsx-to-pdf') },
+    { id: 'pptx-pdf', title: 'PPTX → PDF', description: 'PowerPoint slides to PDF', icon: <FileDown size={22} />, iconColor: blue, onClick: () => setActivePage('tools-convert--pptx-to-pdf') },
+    { id: 'html-pdf', title: 'HTML → PDF', description: 'Web page to PDF', icon: <File size={22} />, iconColor: blue, onClick: () => setActivePage('tools-convert--html-to-pdf') },
+    { id: 'csv-pdf', title: 'CSV → PDF', description: 'CSV spreadsheet to PDF', icon: <FileText size={22} />, iconColor: blue, onClick: () => setActivePage('tools-convert--csv-to-pdf') },
+    { id: 'md-pdf', title: 'MD → PDF', description: 'Markdown document to PDF', icon: <FileCode size={22} />, iconColor: blue, onClick: () => setActivePage('tools-convert--md-to-pdf') },
+    { id: 'txt-pdf', title: 'TXT → PDF', description: 'Plain text to PDF', icon: <Type size={22} />, iconColor: blue, onClick: () => setActivePage('tools-convert--txt-to-pdf') },
+    { id: 'img-pdf', title: 'Image → PDF', description: 'JPG/PNG image to PDF', icon: <Image size={22} />, iconColor: blue, onClick: () => setActivePage('tools-convert--image-to-pdf') },
   ];
 
   const convertFromCards: CardData[] = [
-    { id: 'pdf-html', title: 'PDF → HTML', description: 'PDF to web page', icon: <File size={24} />, theme: 'purple', onClick: () => setActivePage('tools-convert--pdf-to-html') },
-    { id: 'pdf-txt', title: 'PDF → TXT', description: 'PDF to plain text', icon: <Type size={24} />, theme: 'slate', onClick: () => setActivePage('tools-convert--pdf-to-txt') },
-    { id: 'pdf-md', title: 'PDF → MD', description: 'PDF to Markdown', icon: <FileCode size={24} />, theme: 'indigo', onClick: () => setActivePage('tools-convert--pdf-to-md') },
+    { id: 'pdf-html', title: 'PDF → HTML', description: 'PDF to web page', icon: <File size={22} />, iconColor: indigo, onClick: () => setActivePage('tools-convert--pdf-to-html') },
+    { id: 'pdf-txt', title: 'PDF → TXT', description: 'PDF to plain text', icon: <Type size={22} />, iconColor: indigo, onClick: () => setActivePage('tools-convert--pdf-to-txt') },
+    { id: 'pdf-md', title: 'PDF → MD', description: 'PDF to Markdown', icon: <FileCode size={22} />, iconColor: indigo, onClick: () => setActivePage('tools-convert--pdf-to-md') },
   ];
 
   const docConvertCards: CardData[] = [
-    { id: 'docx-html', title: 'DOCX → HTML', description: 'Word to web page', icon: <FileText size={24} />, theme: 'blue', onClick: () => setActivePage('tools-convert--docx-to-html') },
-    { id: 'docx-md', title: 'DOCX → MD', description: 'Word to Markdown', icon: <FileCode size={24} />, theme: 'indigo', onClick: () => setActivePage('tools-convert--docx-to-md') },
-    { id: 'docx-txt', title: 'DOCX → TXT', description: 'Word to plain text', icon: <Type size={24} />, theme: 'slate', onClick: () => setActivePage('tools-convert--docx-to-txt') },
-    { id: 'xlsx-csv', title: 'XLSX → CSV', description: 'Excel to CSV', icon: <FileSpreadsheet size={24} />, theme: 'green', onClick: () => setActivePage('tools-convert--xlsx-to-csv') },
-    { id: 'xlsx-html', title: 'XLSX → HTML', description: 'Excel to web page', icon: <File size={24} />, theme: 'purple', onClick: () => setActivePage('tools-convert--xlsx-to-html') },
-    { id: 'xlsx-md', title: 'XLSX → MD', description: 'Excel to Markdown', icon: <FileCode size={24} />, theme: 'indigo', onClick: () => setActivePage('tools-convert--xlsx-to-md') },
-    { id: 'xlsx-txt', title: 'XLSX → TXT', description: 'Excel to plain text', icon: <Type size={24} />, theme: 'slate', onClick: () => setActivePage('tools-convert--xlsx-to-txt') },
-    { id: 'csv-xlsx', title: 'CSV → XLSX', description: 'CSV to Excel', icon: <ArrowRightLeft size={24} />, theme: 'green', onClick: () => setActivePage('tools-convert--csv-to-xlsx') },
-    { id: 'csv-html', title: 'CSV → HTML', description: 'CSV to web table', icon: <File size={24} />, theme: 'purple', onClick: () => setActivePage('tools-convert--csv-to-html') },
-    { id: 'csv-md', title: 'CSV → MD', description: 'CSV to Markdown table', icon: <FileCode size={24} />, theme: 'indigo', onClick: () => setActivePage('tools-convert--csv-to-md') },
-    { id: 'pptx-html', title: 'PPTX → HTML', description: 'Slides to web page', icon: <Presentation size={24} />, theme: 'red', onClick: () => setActivePage('tools-convert--pptx-to-html') },
-    { id: 'pptx-txt', title: 'PPTX → TXT', description: 'Slides to plain text', icon: <Type size={24} />, theme: 'slate', onClick: () => setActivePage('tools-convert--pptx-to-txt') },
-    { id: 'pptx-md', title: 'PPTX → MD', description: 'Slides to Markdown', icon: <FileCode size={24} />, theme: 'indigo', onClick: () => setActivePage('tools-convert--pptx-to-md') },
+    { id: 'docx-html', title: 'DOCX → HTML', description: 'Word to web page', icon: <FileText size={22} />, iconColor: blue, onClick: () => setActivePage('tools-convert--docx-to-html') },
+    { id: 'docx-md', title: 'DOCX → MD', description: 'Word to Markdown', icon: <FileCode size={22} />, iconColor: blue, onClick: () => setActivePage('tools-convert--docx-to-md') },
+    { id: 'docx-txt', title: 'DOCX → TXT', description: 'Word to plain text', icon: <Type size={22} />, iconColor: blue, onClick: () => setActivePage('tools-convert--docx-to-txt') },
+    { id: 'xlsx-csv', title: 'XLSX → CSV', description: 'Excel to CSV', icon: <FileSpreadsheet size={22} />, iconColor: blue, onClick: () => setActivePage('tools-convert--xlsx-to-csv') },
+    { id: 'xlsx-html', title: 'XLSX → HTML', description: 'Excel to web page', icon: <File size={22} />, iconColor: blue, onClick: () => setActivePage('tools-convert--xlsx-to-html') },
+    { id: 'xlsx-md', title: 'XLSX → MD', description: 'Excel to Markdown', icon: <FileCode size={22} />, iconColor: blue, onClick: () => setActivePage('tools-convert--xlsx-to-md') },
+    { id: 'xlsx-txt', title: 'XLSX → TXT', description: 'Excel to plain text', icon: <Type size={22} />, iconColor: blue, onClick: () => setActivePage('tools-convert--xlsx-to-txt') },
+    { id: 'csv-xlsx', title: 'CSV → XLSX', description: 'CSV to Excel', icon: <ArrowRightLeft size={22} />, iconColor: blue, onClick: () => setActivePage('tools-convert--csv-to-xlsx') },
+    { id: 'csv-html', title: 'CSV → HTML', description: 'CSV to web table', icon: <File size={22} />, iconColor: blue, onClick: () => setActivePage('tools-convert--csv-to-html') },
+    { id: 'csv-md', title: 'CSV → MD', description: 'CSV to Markdown table', icon: <FileCode size={22} />, iconColor: blue, onClick: () => setActivePage('tools-convert--csv-to-md') },
+    { id: 'pptx-html', title: 'PPTX → HTML', description: 'Slides to web page', icon: <Presentation size={22} />, iconColor: indigo, onClick: () => setActivePage('tools-convert--pptx-to-html') },
+    { id: 'pptx-txt', title: 'PPTX → TXT', description: 'Slides to plain text', icon: <Type size={22} />, iconColor: indigo, onClick: () => setActivePage('tools-convert--pptx-to-txt') },
+    { id: 'pptx-md', title: 'PPTX → MD', description: 'Slides to Markdown', icon: <FileCode size={22} />, iconColor: indigo, onClick: () => setActivePage('tools-convert--pptx-to-md') },
   ];
 
   const textMarkupCards: CardData[] = [
-    { id: 'html-txt', title: 'HTML → TXT', description: 'Strip HTML tags', icon: <File size={24} />, theme: 'purple', onClick: () => setActivePage('tools-convert--html-to-txt') },
-    { id: 'html-md', title: 'HTML → MD', description: 'HTML to Markdown', icon: <FileCode size={24} />, theme: 'indigo', onClick: () => setActivePage('tools-convert--html-to-md') },
-    { id: 'md-html', title: 'MD → HTML', description: 'Markdown to web page', icon: <FileCode size={24} />, theme: 'indigo', onClick: () => setActivePage('tools-convert--md-to-html') },
-    { id: 'md-txt', title: 'MD → TXT', description: 'Markdown to plain text', icon: <Type size={24} />, theme: 'slate', onClick: () => setActivePage('tools-convert--md-to-txt') },
-    { id: 'txt-html', title: 'TXT → HTML', description: 'Text to web page', icon: <File size={24} />, theme: 'purple', onClick: () => setActivePage('tools-convert--txt-to-html') },
-    { id: 'txt-md', title: 'TXT → MD', description: 'Text to Markdown', icon: <FileCode size={24} />, theme: 'indigo', onClick: () => setActivePage('tools-convert--txt-to-md') },
+    { id: 'html-txt', title: 'HTML → TXT', description: 'Strip HTML tags', icon: <File size={22} />, iconColor: indigo, onClick: () => setActivePage('tools-convert--html-to-txt') },
+    { id: 'html-md', title: 'HTML → MD', description: 'HTML to Markdown', icon: <FileCode size={22} />, iconColor: indigo, onClick: () => setActivePage('tools-convert--html-to-md') },
+    { id: 'md-html', title: 'MD → HTML', description: 'Markdown to web page', icon: <FileCode size={22} />, iconColor: indigo, onClick: () => setActivePage('tools-convert--md-to-html') },
+    { id: 'md-txt', title: 'MD → TXT', description: 'Markdown to plain text', icon: <Type size={22} />, iconColor: indigo, onClick: () => setActivePage('tools-convert--md-to-txt') },
+    { id: 'txt-html', title: 'TXT → HTML', description: 'Text to web page', icon: <File size={22} />, iconColor: indigo, onClick: () => setActivePage('tools-convert--txt-to-html') },
+    { id: 'txt-md', title: 'TXT → MD', description: 'Text to Markdown', icon: <FileCode size={22} />, iconColor: indigo, onClick: () => setActivePage('tools-convert--txt-to-md') },
   ];
 
   const dataCards: CardData[] = [
-    { id: 'json-pdf', title: 'JSON → PDF', description: 'AI-powered structured report from JSON data', icon: <FileJson size={24} />, theme: 'purple', onClick: () => setActivePage('tools-json') },
-    { id: 'json-html', title: 'JSON → HTML', description: 'JSON to styled table', icon: <FileJson size={24} />, theme: 'amber', onClick: () => setActivePage('tools-convert--json-to-html') },
-    { id: 'json-txt', title: 'JSON → TXT', description: 'JSON to formatted text', icon: <FileJson size={24} />, theme: 'slate', onClick: () => setActivePage('tools-convert--json-to-txt') },
+    { id: 'json-pdf', title: 'JSON → PDF', description: 'AI-powered structured report from JSON data', icon: <FileJson size={22} />, iconColor: blue, onClick: () => setActivePage('tools-json') },
+    { id: 'json-html', title: 'JSON → HTML', description: 'JSON to styled table', icon: <FileJson size={22} />, iconColor: blue, onClick: () => setActivePage('tools-convert--json-to-html') },
+    { id: 'json-txt', title: 'JSON → TXT', description: 'JSON to formatted text', icon: <FileJson size={22} />, iconColor: blue, onClick: () => setActivePage('tools-convert--json-to-txt') },
   ];
 
   const aiCards: CardData[] = [
-    { id: 'ocr', title: 'OCR — Extract Text', description: 'Extract text from PDFs and images using Mistral AI', icon: <FileText size={24} />, theme: 'purple', onClick: () => setActivePage('tools-ocr') },
-    { id: 'translate', title: 'Translate', description: 'Translate to 30+ languages with AI', icon: <ArrowRightLeft size={24} />, theme: 'blue', onClick: () => setActivePage('tools-translate') },
+    { id: 'ocr', title: 'OCR — Extract Text', description: 'Extract text from PDFs and images using Mistral AI', icon: <FileText size={22} />, iconColor: blue, onClick: () => setActivePage('tools-ocr') },
+    { id: 'translate', title: 'Translate', description: 'Translate to 30+ languages with AI', icon: <ArrowRightLeft size={22} />, iconColor: blue, onClick: () => setActivePage('tools-translate') },
   ];
 
   return (
@@ -144,15 +147,16 @@ export function ToolsPage() {
       </ToolSection>
 
       {/* CTA */}
-      <div className="text-center mt-12 p-8 rounded-2xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white">
-        <Shield size={32} className="mx-auto mb-3 opacity-80" />
-        <h3 className="text-xl font-bold mb-2">Need batch conversion?</h3>
-        <p className="text-blue-100 mb-4 text-sm">
+      <div className="text-center mt-12 p-8 rounded-2xl" style={{ background: '#EFF6FF', border: '1px solid #BFDBFE' }}>
+        <Shield size={32} className="mx-auto mb-3" style={{ color: '#2563EB' }} />
+        <h3 className="text-xl font-bold mb-2" style={{ color: '#0F172A' }}>Need batch conversion?</h3>
+        <p className="mb-4 text-sm" style={{ color: '#64748B' }}>
           Use the full converter for batch processing, custom settings, and all 45+ format combinations.
         </p>
         <button
           onClick={() => setActivePage('convert')}
-          className="px-6 py-2.5 bg-white text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition"
+          className="px-6 py-2.5 rounded-full font-semibold text-white transition-all hover:brightness-110"
+          style={{ background: 'linear-gradient(135deg, #2563EB, #3B82F6)', boxShadow: '0 2px 8px rgba(37,99,235,0.3)' }}
         >
           Open Converter
         </button>
