@@ -68,7 +68,10 @@ export function TranslatePage() {
       } else {
         const formData = new FormData();
         formData.append('file', f);
-        const res = await fetch(`${API_URL}/api/ocr`, { method: 'POST', body: formData });
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 60000);
+        const res = await fetch(`${API_URL}/api/ocr`, { method: 'POST', body: formData, signal: controller.signal });
+        clearTimeout(timeout);
         if (!res.ok) {
           const data = await res.json().catch(() => ({ error: 'Failed to read file' }));
           throw new Error(data.error || 'Failed to extract text from file');
@@ -146,7 +149,7 @@ export function TranslatePage() {
         </div>
         <h1 className="text-2xl font-bold text-slate-900">Translate</h1>
         <p className="text-sm text-slate-500 mt-1">
-          Translate text or files to 30+ languages. Powered by Mistral AI.
+          Translate text or files to 30+ languages instantly.
         </p>
       </div>
 
